@@ -1,0 +1,44 @@
+# Renueva el pronóstico del tiempo (NOAA GFS + GEFS) cada 6 horas.
+# La página publicada lee docs/clima.json cada vez que se abre.
+name: Actualizar pronóstico
+
+on:
+  schedule:
+    - cron: "40 5,11,17,23 * * *"   # unas 5 h 40 min después de cada corrida del modelo (00, 06, 12, 18 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clima
+  cancel-in-progress: false
+
+jobs:
+  clima:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: pip install eccodes requests numpy
+      - name: Descargar pronóstico
+        run: python3 herramientas/clima.py datos/clima.json
+      - name: Guardar si hay una corrida nueva
+        run: |
+          nueva=$(python3 -c "import json;print(json.load(open('datos/clima.json'))['corrida'])")
+          vieja=$(python3 -c "import json;print(json.load(open('docs/clima.json'))['corrida'])" 2>/dev/null || echo ninguna)
+          if [ "$nueva" = "$vieja" ]; then
+            echo "Sin corrida nueva ($nueva)."
+            git checkout -- datos/clima.json
+            exit 0
+          fi
+          cp datos/clima.json docs/clima.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add datos/clima.json docs/clima.json
+          git commit -m "Pronóstico: corrida $nueva"
+          git push

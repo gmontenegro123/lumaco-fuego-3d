@@ -21,7 +21,8 @@ Simulador 3D de propagación de incendios forestales y coordinación interinstit
 | `fuente/template.html` | El código de la aplicación (HTML, CSS y JavaScript en un solo archivo). Tiene el marcador `/*DATA*/null` donde se insertan los datos. |
 | `build.py` | Arma `docs/index.html` a partir de la plantilla y los datos. |
 | `datos/lumaco_data2.json` | Datos de la grilla de 560 × 520 celdas (~100 m): elevación, cobertura del suelo, localidades, caminos, agua, edificaciones, puntos de interés y límite comunal. |
-| `datos/clima.json` | Último pronóstico descargado (corrida GFS del 10 nov 2026, 06 UTC). Va incluido en la página como respaldo. |
+| `datos/clima.json`, `docs/clima.json` | Último pronóstico descargado. Lo renueva la tarea automática cada 6 horas; la página lee la copia de `docs/`. |
+| `.github/workflows/clima.yml` | La tarea automática de GitHub que renueva el pronóstico. |
 | `datos/lumaco.geojson`, `datos/lumaco_data.json` | Límite comunal y datos de la versión 1. Se conservan como referencia; ya no se usan al armar la página. |
 | `herramientas/` | Programas que generaron los datos: `prep.py`, `q2.py`, `pack.py`, `tex.py`, `hi.py`, `bake.py` y `clima.py` (pronóstico). |
 | `pruebas/` | Pruebas automáticas con navegador (`shot.js`) y hoja de miniaturas de recursos (`icons.html`). |
@@ -51,7 +52,7 @@ A tener en cuenta antes de activarlo:
 Fuera de claude.ai la página funciona en **modo local**:
 
 - Los recursos, la bitácora y el escenario se guardan solo en el navegador de cada persona. **No se comparten** entre instituciones.
-- El pronóstico es el que quedó incluido al armar la página; no se actualiza solo cada 6 horas.
+- El pronóstico se renueva solo: una tarea automática de GitHub (`.github/workflows/clima.yml`) descarga cada 6 horas el pronóstico de NOAA (GFS y GEFS, las mismas fuentes que la versión de claude.ai) y lo guarda en `docs/clima.json`. La página lo lee al abrirse y lo vuelve a consultar cada 30 minutos. El modelo de NOAA publica una corrida nueva cada 6 horas, así que no existe un dato más reciente que ese.
 - Las exportaciones KML y CSV se muestran como texto para copiar, en vez de descargarse.
 
 La versión con datos compartidos en vivo sigue siendo la publicada en claude.ai.

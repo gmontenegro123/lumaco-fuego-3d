@@ -1489,9 +1489,14 @@ function start(){
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",setSky);
 new MutationObserver(setSky).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 
+// Fuera de claude.ai (por ejemplo en GitHub Pages) el pronóstico se lee de clima.json, que una tarea automática renueva cada 6 h
+async function pollWx(){
+  try{ const r=await fetch("clima.json?t="+Date.now(),{cache:"no-store"}); if(r.ok){ const d=await r.json(); if(d && d.h && (!WX || d.corrida!==pollWx.last)){ pollWx.last=d.corrida; onWxData(d); } } }catch(e){}
+  setTimeout(pollWx, 30*60*1000);
+}
 async function connect(){
   const chip=$("chipShare"), txt=$("chipShareTxt");
-  const goLocal = () => { localMode=true; chip.classList.remove("on"); txt.textContent="Modo local · sin compartir"; try{ resources=JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch(e){ resources=[]; } updateResources3D(); renderResList(); updateStats(); try{ logs=JSON.parse(localStorage.getItem(LS_LOG)||"[]"); }catch(e){ logs=[]; } renderLog(); };
+  const goLocal = () => { localMode=true; chip.classList.remove("on"); txt.textContent="Modo local · sin compartir"; try{ resources=JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch(e){ resources=[]; } updateResources3D(); renderResList(); updateStats(); try{ logs=JSON.parse(localStorage.getItem(LS_LOG)||"[]"); }catch(e){ logs=[]; } renderLog(); if(!goLocal.wx && !window.claude && /^https?:$/.test(location.protocol)){ goLocal.wx=true; pollWx(); } };
   if (!window.claude || !window.claude.use){ goLocal(); return; }
   try { [db,user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]); } catch(e){ db=null; }
   if (!db){ goLocal(); return; }
