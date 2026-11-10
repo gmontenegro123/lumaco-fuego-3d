@@ -20,4 +20,4 @@ Los archivos intermedios son grandes y quedan en la carpeta `trabajo/`, que no s
 
 `prep.py` generó `datos/lumaco_data.json` en la versión 1 a partir de archivos descargados a mano (relieve, WorldCover y Sentinel-2); recibe como argumento la carpeta donde están. `tex.py` generó la imagen de la versión 2 y ya no se usa.
 
-Comprobado el 10 de noviembre de 2026: los pasos 2 y 3 regeneran imágenes idénticas, píxel por píxel, a las publicadas.
+Comprobado el 10 de noviembre de 2026: los pasos 2 y 3 regeneran imágenes idénticas, píxel por píxel, a las publicadas, y los pasos 4 y 5 regeneran exactamente los mismos datos del mapa.
