@@ -1,0 +1,7 @@
+numpy
+requests
+eccodes
+rasterio
+pillow
+pyarrow
+shapely

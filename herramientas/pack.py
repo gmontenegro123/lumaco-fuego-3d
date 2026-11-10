@@ -1,10 +1,11 @@
+from rutas import *
 import json, base64, io, numpy as np, pyarrow.parquet as pq, shapely.wkb as WKB, os
 from shapely.geometry import shape, Point
 from PIL import Image
 W,S,E,N=-73.37,-38.51,-72.76,-38.04; NX,NY=560,520
-D='/home/user/lumaco/ov/'
-d=json.load(open('/home/user/lumaco/prev/lumaco_data.json'))
-com=shape(json.load(open('/home/user/lumaco/prev/lumaco.geojson'))['geometry'])
+D=TRABAJO
+d=json.load(open(DATOS+'lumaco_data.json'))
+com=shape(json.load(open(DATOS+'lumaco.geojson'))['geometry'])
 q=lambda x,y:(int(round((x-W)*1e5)),int(round((N-y)*1e5)))
 def line(g):
     g=g.simplify(0.00008); o=[]
@@ -57,11 +58,11 @@ for r in sorted(pq.read_table(D+'place.parquet').to_pylist(),key=lambda r:-(r['c
     poi.append([c,r['names']['primary'],round(g.x,5),round(g.y,5)])
 print('poi',poi)
 d.update(loc=loc,roads=roads,wl=wl,wp=wp,bld=base64.b64encode(np.minimum(grid,255).astype(np.uint8).tobytes()).decode(),poi=poi)
-if os.path.exists('/home/user/lumaco/ras/tci.npy'):
-    a=np.load('/home/user/lumaco/ras/tci.npy').astype(np.float32); a=np.transpose(a,(1,2,0))
+if os.path.exists(TRABAJO+'tci.npy'):
+    a=np.load(TRABAJO+'tci.npy').astype(np.float32); a=np.transpose(a,(1,2,0))
     lo=np.percentile(a[::8,::8],1); hi=np.percentile(a[::8,::8],99.5)
     a=(np.clip((a-lo)/(hi-lo),0,1)**0.78*255).astype(np.uint8); im=Image.fromarray(a)
     buf=io.BytesIO(); im.save(buf,'JPEG',quality=72,optimize=True); print('jpg',len(buf.getvalue()))
     d['tex']='data:image/jpeg;base64,'+base64.b64encode(buf.getvalue()).decode()
-    im.resize((1024,1000)).save('/home/user/lumaco/ras/preview.jpg',quality=70)
-s=json.dumps(d,separators=(',',':'),ensure_ascii=False); open('/home/user/lumaco/ov/lumaco_data2.json','w').write(s); print('total',len(s))
+    im.resize((1024,1000)).save(TRABAJO+'preview.jpg',quality=70)
+s=json.dumps(d,separators=(',',':'),ensure_ascii=False); open(DATOS+'lumaco_data2.json','w').write(s); print('total',len(s))

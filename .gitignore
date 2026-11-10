@@ -2,4 +2,6 @@ node_modules/
 __pycache__/
 *.pyc
 .DS_Store
-pruebas/*.png
+pruebas/capturas/
+pruebas/package-lock.json
+trabajo/

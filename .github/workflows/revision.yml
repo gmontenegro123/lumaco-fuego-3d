@@ -1,0 +1,40 @@
+# Revisión automática: en cada cambio arma la página y la abre en un navegador de prueba.
+name: Revisión automática
+
+on:
+  push:
+    paths-ignore: ["**.md"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Armar la página
+        run: python3 build.py
+      - name: Comprobar que docs/index.html está al día
+        run: |
+          git diff --exit-code --stat -- docs/index.html || {
+            echo "::error::docs/index.html no coincide con la plantilla y los datos. Ejecuta 'python3 build.py' y sube el resultado."
+            exit 1
+          }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar navegador de prueba
+        working-directory: pruebas
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Abrir el sitio y comprobar que funciona
+        working-directory: pruebas
+        run: node humo.js

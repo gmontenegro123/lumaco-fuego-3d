@@ -472,7 +472,7 @@ function locsWithExit(tMin){
   return out;
 }
 let baseExit=null;
-if (window.__LITE) window.__dbg={exits:()=>EXITS.length, base:()=>locsWithExit(-1).size, locs:()=>LOCS.filter(l=>l.kind!==3).length, at:t=>({ok:locsWithExit(t).size, cut:isolatedLocs(t).map(l=>l.n)})};
+if (window.__LITE) window.__dbg={sim:()=>{ const t0=performance.now(); const r=simulate(); let n=0,s=0; for(const v of r.T) if(v<=st.H*60){ n++; s+=v; } return {ms:performance.now()-t0, n, s}; }, exits:()=>EXITS.length, base:()=>locsWithExit(-1).size, locs:()=>LOCS.filter(l=>l.kind!==3).length, at:t=>({ok:locsWithExit(t).size, cut:isolatedLocs(t).map(l=>l.n)})};
 function isolatedLocs(tMin){   // localidades aún no quemadas que tenían salida por camino y la pierden
   if (!arrival) return []; if (!baseExit) baseExit=locsWithExit(-1);
   const now=locsWithExit(tMin), out=[];
@@ -560,12 +560,19 @@ function wxSeries(){   // clima para cada hora de la proyección
   return out;
 }
 const NB = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+let SLOPE_F=null;   // factor de pendiente precalculado por vecino y desnivel (m enteros, ±2000)
+function slopeTables(nb){
+  if (SLOPE_F) return SLOPE_F;
+  SLOPE_F = nb.map(n=>{ const f=new Float64Array(4001); for(let dz=-2000;dz<=2000;dz++){ const sl=Math.atan(dz/n.d)*57.2958; f[dz+2000] = sl>=0 ? Math.min(3,Math.exp(0.069*sl)) : Math.max(0.5,Math.exp(0.035*sl)); } return f; });
+  return SLOPE_F;
+}
 function simulate(){
   const series = wxSeries(), effs = series.map(effOf);
   const nbH = series.map(w=>{ const V = w.WS/3.6, to = (w.WD+180)*Math.PI/180, wx=Math.sin(to), wy=Math.cos(to); const f=new Float32Array(16);
     NB.forEach(([di,dj],k)=>{ const ex=di*DX, ny=-dj*DY, d=Math.hypot(ex,ny), c=(ex*wx+ny*wy)/d; f[k] = c>=0 ? Math.min(25, Math.exp(0.25*V*c)) : Math.max(0.35, Math.exp(0.08*V*c)); }); return f; });
   const baseH = effs.map(eff=>{ const b=new Float32Array(256); for (const k in FUEL) b[k] = FUEL[k].ros*(FUEL[k].fine?eff.fineMul:1)*eff.fm; return b; });
   const nb = NB.map(([di,dj])=>({o:dj*NX+di, di, dj, d:Math.hypot(di*DX,dj*DY)}));
+  const slF = slopeTables(nb), nbO=nb.map(n=>n.o), nbI=nb.map(n=>n.di), nbJ=nb.map(n=>n.dj), nbD=nb.map(n=>n.d);
   const eff = effs[0];
   const maxMin = st.H*60;
   const T = new Float32Array(NX*NY).fill(Infinity), par = new Int32Array(NX*NY).fill(-1);
@@ -573,9 +580,10 @@ function simulate(){
   let hv = new Float32Array(1<<16), hi = new Int32Array(1<<16), hn=0;
   const push=(v,i)=>{ if(hn>=hv.length){const a=new Float32Array(hv.length*2);a.set(hv);hv=a;const b=new Int32Array(hi.length*2);b.set(hi);hi=b;}
     let k=hn++; while(k>0){const p=(k-1)>>1; if(hv[p]<=v)break; hv[k]=hv[p];hi[k]=hi[p];k=p;} hv[k]=v;hi[k]=i; };
-  const pop=()=>{ const v=hv[0],i=hi[0]; const lv=hv[--hn],li=hi[hn]; let k=0;
+  let pv=0, pi=0;
+  const pop=()=>{ pv=hv[0]; pi=hi[0]; const lv=hv[--hn],li=hi[hn]; let k=0;
     while(true){let c=2*k+1; if(c>=hn)break; if(c+1<hn&&hv[c+1]<hv[c])c++; if(hv[c]>=lv)break; hv[k]=hv[c];hi[k]=hi[c];k=c;}
-    hv[k]=lv;hi[k]=li; return [v,i]; };
+    hv[k]=lv;hi[k]=li; };
   const [i0,j0] = lonlatToCell(st.ign.lon, st.ign.lat);
   if (i0<0||j0<0||i0>=NX||j0>=NY) return {T, eff, effs, series, maxRos:0};
   if (st.perimCells) for (const c of st.perimCells){ T[c]=0; push(0,c); }
@@ -583,17 +591,16 @@ function simulate(){
   const brake = st.roadBrake;
   let maxRos = 0;
   while(hn){
-    const [t,c] = pop(); if (t>T[c]) continue; if (t>maxMin) break;
+    pop(); const t=pv, c=pi; if (t>T[c]) continue; if (t>maxMin) break;
     const ci=c%NX, cj=(c/NX)|0, ec=ELEV[c], hk=Math.min(st.H,(t/60)|0), base=baseH[hk], fwH=nbH[hk];
     for (let k=0;k<16;k++){
-      const n=nb[k], ni=ci+n.di, nj=cj+n.dj;
+      const ni=ci+nbI[k], nj=cj+nbJ[k];
       if (ni<0||nj<0||ni>=NX||nj>=NY) continue;
-      const q=c+n.o; if (BURN_BLOCK[q]) continue;
+      const q=c+nbO[k]; if (BURN_BLOCK[q]) continue;
       const b = base[LC[q]]; if (!(b>0)) continue;
-      const sl = Math.atan((ELEV[q]-ec)/n.d)*57.2958;
-      const fs = sl>=0 ? Math.min(3,Math.exp(0.069*sl)) : Math.max(0.5,Math.exp(0.035*sl));
+      const dz = ELEV[q]-ec, fs = slF[k][(dz<-2000?-2000:dz>2000?2000:dz)+2000];
       const rf = brake ? ROADF[q] : 0, ros = b*Math.min(25,fwH[k]*fs)*(rf===1?.3:rf===2?.5:1); // m/min
-      const nt = t + n.d/ros;
+      const nt = t + nbD[k]/ros;
       if (nt < T[q]){ T[q]=nt; par[q]=c; push(nt,q); if(ros>maxRos && nt<=maxMin) maxRos=ros; }
     }
   }

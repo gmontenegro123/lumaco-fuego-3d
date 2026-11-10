@@ -2,7 +2,7 @@
 
 Simulador 3D de propagación de incendios forestales y coordinación interinstitucional para la comuna de Lumaco, Región de La Araucanía, Chile.
 
-**Estado: prototipo, versión 6 (10 de noviembre de 2026).** El modelo de propagación usa coeficientes de referencia **sin calibrar** con incendios reales de la zona. Sirve para comparar escenarios y coordinar; no sirve para decidir evacuaciones ni reemplaza el análisis de CONAF.
+**Estado: prototipo, versión 6.1 (10 de noviembre de 2026).** Ver el [historial de versiones](CAMBIOS.md). El modelo de propagación usa coeficientes de referencia **sin calibrar** con incendios reales de la zona. Sirve para comparar escenarios y coordinar; no sirve para decidir evacuaciones ni reemplaza el análisis de CONAF.
 
 ## Qué hace
 
@@ -22,10 +22,12 @@ Simulador 3D de propagación de incendios forestales y coordinación interinstit
 | `build.py` | Arma `docs/index.html` a partir de la plantilla y los datos. |
 | `datos/lumaco_data2.json` | Datos de la grilla de 560 × 520 celdas (~100 m): elevación, cobertura del suelo, localidades, caminos, agua, edificaciones, puntos de interés y límite comunal. |
 | `datos/clima.json`, `docs/clima.json` | Último pronóstico descargado. Lo renueva la tarea automática cada 6 horas; la página lee la copia de `docs/`. |
-| `.github/workflows/clima.yml` | La tarea automática de GitHub que renueva el pronóstico. |
+| `.github/workflows/clima.yml` | La tarea automática de GitHub que renueva el pronóstico y avisa si queda atrasado. |
 | `datos/lumaco.geojson`, `datos/lumaco_data.json` | Límite comunal y datos de la versión 1. Se conservan como referencia; ya no se usan al armar la página. |
-| `herramientas/` | Programas que generaron los datos: `prep.py`, `q2.py`, `pack.py`, `tex.py`, `hi.py`, `bake.py` y `clima.py` (pronóstico). |
-| `pruebas/` | Pruebas automáticas con navegador (`shot.js`) y hoja de miniaturas de recursos (`icons.html`). |
+| `herramientas/` | Programas que generan los datos y las imágenes. El orden y el uso están en [herramientas/LEEME.md](herramientas/LEEME.md). |
+| `pruebas/` | `humo.js` es la revisión automática que GitHub ejecuta en cada cambio. `shot.js` toma capturas de pantalla e `icons.html` muestra las miniaturas de recursos. |
+| `.github/workflows/revision.yml` | La tarea de GitHub que ejecuta la revisión automática. |
+| `CAMBIOS.md` | Historial de versiones. |
 
 ## Cómo verlo
 
@@ -73,7 +75,22 @@ python3 herramientas/clima.py datos/clima.json
 python3 build.py
 ```
 
-Los demás programas de `herramientas/` y `pruebas/shot.js` conservan rutas del equipo donde se crearon (`/home/user/lumaco/...`); hay que ajustarlas antes de ejecutarlos. Solo hacen falta para regenerar los datos o las imágenes desde cero.
+Si cambias `fuente/template.html` o los datos, ejecuta `python3 build.py` y sube también `docs/index.html`; la revisión automática lo comprueba.
+
+## Revisión automática
+
+En cada cambio, GitHub arma la página, la abre en un navegador de prueba y comprueba que carga, que la proyección se calcula y que los escenarios, los recursos, la bitácora y las exportaciones responden. El resultado se ve en la pestaña *Actions* del repositorio. Para ejecutarla en un computador:
+
+```
+cd pruebas
+npm install
+npx playwright install chromium
+node humo.js
+```
+
+## Si el pronóstico deja de actualizarse
+
+Cuando el pronóstico guardado tiene más de 18 horas, la tarea automática abre un aviso en la pestaña *Issues* del repositorio, que GitHub envía por correo al dueño. Se cierra solo cuando el pronóstico vuelve a actualizarse. La página también muestra "pronóstico desactualizado" junto a la fuente.
 
 ## El modelo
 

@@ -1,15 +1,6 @@
 {
-  "name": "test",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "three": "^0.147.0"
-  }
+  "name": "lumaco-fuego-3d-pruebas",
+  "private": true,
+  "scripts": { "test": "node humo.js" },
+  "dependencies": { "playwright": "^1.48.0", "three": "0.147.0" }
 }

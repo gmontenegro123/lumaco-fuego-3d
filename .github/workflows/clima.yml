@@ -1,5 +1,6 @@
 # Renueva el pronóstico del tiempo (NOAA GFS + GEFS) cada 6 horas.
 # La página publicada lee docs/clima.json cada vez que se abre.
+# Si el pronóstico guardado queda con más de 18 horas, abre un aviso (issue) en el repositorio.
 name: Actualizar pronóstico
 
 on:
@@ -9,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: clima
@@ -37,8 +39,27 @@ jobs:
             exit 0
           fi
           cp datos/clima.json docs/clima.json
+          python3 build.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add datos/clima.json docs/clima.json
+          git add datos/clima.json docs/clima.json docs/index.html
           git commit -m "Pronóstico: corrida $nueva"
           git push
+      - name: Avisar si el pronóstico quedó atrasado
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          horas=$(python3 -c "import json,datetime as d;c=json.load(open('docs/clima.json'))['corrida'];print(int((d.datetime.now(d.timezone.utc)-d.datetime.fromisoformat(c.replace('Z','+00:00'))).total_seconds()//3600))")
+          titulo="El pronóstico del tiempo no se está actualizando"
+          abierto=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$titulo\" in:title" --json number --jq '.[0].number // empty')
+          echo "El pronóstico guardado tiene $horas horas."
+          if [ "$horas" -gt 18 ]; then
+            if [ -z "$abierto" ]; then
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$titulo" --body "El pronóstico guardado en el sitio tiene $horas horas. La tarea automática que lo renueva cada 6 horas está fallando o NOAA no ha publicado datos nuevos. Detalle de la última ejecución: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+
+          Este aviso se cierra solo cuando el pronóstico vuelva a actualizarse."
+            fi
+          elif [ -n "$abierto" ]; then
+            gh issue close "$abierto" --repo "$GITHUB_REPOSITORY" --comment "El pronóstico volvió a actualizarse (tiene $horas horas)."
+          fi
