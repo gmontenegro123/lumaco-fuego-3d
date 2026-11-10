@@ -1,0 +1,1 @@
+const { chromium } = require('playwright');(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1560,height:760}});p.on('pageerror',e=>console.log('ERR',e.message));await p.goto('file:///home/user/lumaco/test/icons.html');await p.screenshot({path:'/home/user/lumaco/test/icons.png'});await b.close();})();

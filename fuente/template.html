@@ -1,0 +1,1526 @@
+<title>Lumaco Fuego 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sala de situación — panel de control a la izquierda, terreno 3D a pantalla completa, línea de tiempo abajo */
+:root{
+  --bg:#eef0ec; --panel:#f8f9f6; --ink:#1d2621; --muted:#5b665f; --line:#d3d8d1; --field:#ffffff;
+  --accent:#c2410c; --accent-soft:#c2410c1f; --info:#1d5f8a; --ok:#2f7d4a; --warn:#b7791f; --crit:#b42318;
+  --view:#cfd6d1;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --panel:#1a201d; --ink:#e6ebe7; --muted:#9aa69f; --line:#2c3531; --field:#222a26;
+  --accent:#f0773a; --accent-soft:#f0773a26; --info:#6fb3df; --ok:#5fbf80; --warn:#e3a948; --crit:#f2675c; --view:#0d110f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --panel:#1a201d; --ink:#e6ebe7; --muted:#9aa69f; --line:#2c3531; --field:#222a26;
+  --accent:#f0773a; --accent-soft:#f0773a26; --info:#6fb3df; --ok:#5fbf80; --warn:#e3a948; --crit:#f2675c; --view:#0d110f; color-scheme:dark}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;overflow:hidden}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:360px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:.01em;margin:0;line-height:1.1}
+header h1 small{display:block;font-family:var(--f-body);font-weight:400;font-size:12px;color:var(--muted);letter-spacing:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted);background:var(--field)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.on .dot{background:var(--ok)} .chip.nino{color:var(--accent);border-color:var(--accent)} .chip.nino .dot{background:var(--accent)}
+aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:10px 6px;font-family:var(--f-display);font-weight:600;font-size:15px;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.pane{overflow:auto;padding:14px 16px 24px;display:flex;flex-direction:column;gap:16px;min-height:0;flex:1}
+.sec h2{font-family:var(--f-display);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+.row{display:grid;grid-template-columns:110px minmax(0,1fr) 64px;align-items:center;gap:8px;margin-bottom:6px}
+.row label{font-size:13px;color:var(--muted)}
+.row output{font-family:var(--f-mono);font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.btn{border:1px solid var(--line);background:var(--field);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;line-height:1.2}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.active{outline:2px solid var(--accent);outline-offset:1px}
+.btn.danger{color:var(--crit)}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
+.toggle{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer}
+.toggle input{margin-top:3px;accent-color:var(--accent)}
+.toggle b{font-family:var(--f-display);font-size:15px}
+.toggle span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.note{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
+.note a{color:var(--info)}
+.fld{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+.fld select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--field);color:var(--ink);font-size:13px;min-width:0}
+.wxbox{border:1px solid var(--line);border-radius:8px;background:var(--field);padding:8px 10px;font-size:12.5px;line-height:1.5}
+.wxbox b{font-family:var(--f-mono);font-weight:500}
+.wxgrid{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:1px 8px;font-family:var(--f-mono);font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:6px;max-height:150px;overflow:auto}
+.wxgrid .hd{color:var(--muted);font-family:var(--f-body);position:sticky;top:0;background:var(--field)}
+.wxgrid .hot{color:var(--crit)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--field)}
+.stat .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat .v{font-family:var(--f-mono);font-size:16px;font-variant-numeric:tabular-nums;margin-top:2px}
+.stat.wide{grid-column:1/-1}
+.eta{display:flex;justify-content:space-between;gap:10px;width:100%;background:none;border:0;border-bottom:1px dashed var(--line);text-align:left;font-family:var(--f-mono);font-size:13px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.eta:last-child{border-bottom:0}
+button.eta{cursor:pointer} button.eta:hover span:first-child{text-decoration:underline}
+.eta span:last-child{white-space:nowrap}
+.eta .warn{color:var(--crit);font-weight:500}
+main{position:relative;min-width:0;min-height:0;background:var(--view)}
+#view{position:absolute;inset:0;touch-action:none}
+#view canvas{display:block}
+.hud{position:absolute;pointer-events:none}
+.hud > *{pointer-events:auto}
+.hint button{margin-left:8px;border:1px solid #fff;background:#fff;color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:700;cursor:pointer}
+#hintX{background:transparent;color:#fff;padding:2px 8px}
+.lb.cut span{color:#ffc46b} .lb.cut span::before{content:"⚠ "} .lb.hit span{color:#ff9d92}
+.logrow{border-bottom:1px dashed var(--line);padding:6px 0;font-size:13px;line-height:1.4}
+.logrow small{display:block;color:var(--muted);font-size:11.5px;font-family:var(--f-mono)}
+.tag{font-size:11px;border:1px solid currentColor;border-radius:999px;padding:0 6px;margin-left:6px;color:var(--warn);white-space:nowrap}
+.hint{display:flex;align-items:center;bottom:86px;left:50%;white-space:nowrap;transform:translateX(-50%);background:var(--accent);color:#fff;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 2px 8px #0004}
+.legend{left:12px;bottom:84px;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;max-width:220px}
+.legend h3{margin:0 0 6px;font-family:var(--f-display);font-size:13px;font-weight:600}
+.legend .li{display:flex;align-items:center;gap:6px;margin:2px 0}
+.lgbar{height:10px;border-radius:3px;margin:6px 0 2px;background:linear-gradient(90deg,#6b0808 0%,#c81e1e 20%,#ee6a1b 40%,#f5a524 60%,#f7d25c 80%,#fff1b8 100%)}
+.lgticks{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10.5px;color:var(--muted);margin-bottom:6px}
+.legend .sw{width:14px;height:10px;border-radius:2px;flex:none}
+.timebar{left:12px;right:12px;bottom:12px;background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:12px}
+.timebar .clock{font-family:var(--f-mono);font-size:18px;min-width:96px;font-variant-numeric:tabular-nums}
+.timebar .clock small{display:block;font-size:11px;color:var(--muted);font-family:var(--f-body)}
+.timebar input{flex:1}
+.compass{right:12px;top:12px;width:54px;height:54px;border-radius:50%;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);display:grid;place-items:center}
+.banner{bottom:86px;right:12px;max-width:380px;display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--info);border-radius:8px;padding:8px 12px;font-size:13px}
+.res-list{display:flex;flex-direction:column;gap:6px}
+.res{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer;text-align:left}
+.res .ico{display:block;width:48px;height:45px}
+.icoPrev{width:64px;height:60px;flex:none}
+.res.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.badge{width:36px;height:24px;border-radius:5px;display:grid;place-items:center;font-family:var(--f-mono);font-size:10.5px;font-weight:500;color:#fff}
+.res .nm{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st{font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.st-disponible{color:var(--ok)} .st-ruta{color:var(--info)} .st-combate{color:var(--accent)} .st-descanso{color:var(--muted)} .st-fuera{color:var(--crit)}
+.risk{color:var(--crit);font-size:11px;font-weight:600}
+form.card{border:1px solid var(--accent);border-radius:8px;padding:12px;display:grid;gap:8px;background:var(--field)}
+form.card label{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+form.card input,form.card select{border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--panel)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.empty{border:1px dashed var(--line);border-radius:8px;padding:14px;font-size:13px;color:var(--muted);line-height:1.5}
+.filters{display:flex;flex-wrap:wrap;gap:4px}
+.filters button{font-size:11.5px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:var(--field);cursor:pointer}
+.filters button[aria-pressed="false"]{opacity:.45}
+.layer{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.layer input{accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--field);padding:6px 4px;font-size:12.5px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+table.src{width:100%;border-collapse:collapse;font-size:12px}
+table.src td{padding:4px 0;border-bottom:1px solid var(--line);vertical-align:top}
+table.src td:first-child{color:var(--muted);width:42%;padding-right:8px}
+.confirm{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--crit)}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px}
+#labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.lb{position:absolute;left:0;top:0;white-space:nowrap;visibility:hidden;text-align:center;line-height:1.15;font-family:var(--f-body);-webkit-font-smoothing:antialiased}
+.lb i{display:block;width:7px;height:7px;border-radius:50%;background:#fff;border:1.5px solid #10151a;margin:3px auto 0}
+.lb.town span{font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:.01em;color:#fff;text-shadow:0 0 2px #000,0 0 5px #000,0 1px 3px #000,0 0 10px rgba(0,0,0,.7)}
+.lb.town i{width:9px;height:9px}
+.lb.ham span{font-weight:600;font-size:12.5px;color:#fff;text-shadow:0 0 2px #000,0 0 4px #000,0 1px 2px #000,0 0 8px rgba(0,0,0,.75)}
+.lb.out span{color:#d9dedb;font-weight:500}
+.lb.poi span{display:inline-block;font-size:11.5px;font-weight:600;color:#fff;padding:2px 7px;border-radius:4px}
+.lb.poi i{background:#ffd76a}
+.sum{top:12px;left:12px;max-width:min(340px,calc(100% - 84px));background:color-mix(in srgb,var(--panel) 94%,transparent);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px;box-shadow:0 2px 10px #0002}
+.sum-top{display:flex;gap:10px;align-items:center}
+.sum-arrow{flex:none;width:38px;height:38px;border-radius:50%;background:var(--accent);display:grid;place-items:center}
+.sum-arrow svg{transition:transform .25s}
+.sum-h{font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1.1}
+.sum-s{font-size:12.5px;color:var(--muted);line-height:1.35;margin-top:2px}
+.sum-n{font-size:12.5px;line-height:1.35}
+.sum-n b{color:var(--crit)}
+.sum .btns{flex-wrap:nowrap} .sum .btns .btn{padding:7px 10px;white-space:nowrap}
+.tools{right:12px;top:76px;display:grid;gap:6px}
+.tools button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 94%,transparent);font-size:19px;line-height:1;cursor:pointer;color:var(--ink)}
+.tools button:hover{border-color:var(--muted)}
+.dirwrap{display:flex;gap:12px;align-items:center}
+.dirpad{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:4px;flex:none}
+.dirpad button{border:1px solid var(--line);background:var(--field);border-radius:8px;font-size:17px;cursor:pointer;line-height:1;color:var(--ink)}
+.dirpad button[data-dir="auto"]{font-size:10.5px;font-weight:600;font-family:var(--f-body)}
+.dirpad button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.dirpad button.cur{box-shadow:inset 0 0 0 2px var(--accent)}
+.dirnow{font-family:var(--f-display);font-weight:700;font-size:17px;line-height:1.15;margin-bottom:4px}
+details.adv{border:1px solid var(--line);border-radius:8px;background:var(--field)}
+details.adv>summary{cursor:pointer;padding:9px 10px;font-size:13px;font-weight:600;list-style-position:inside}
+details.adv>div{padding:0 10px 10px}
+details.adv .toggle{border:0;padding:4px 0;background:none}
+.wxbox details summary{cursor:pointer;color:var(--info);margin-top:4px;font-size:12.5px}
+.sec h2 .n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;margin-right:6px;letter-spacing:0}
+@media (max-width:820px){
+  .sum{padding:8px 10px;gap:6px} .sum-h{font-size:16px} .sum-arrow{width:32px;height:32px}
+  .tools{top:70px}
+  body{overflow:auto}
+  .app{grid-template-columns:1fr;grid-template-rows:auto 62vh auto;height:auto}
+  main{grid-row:2}
+  aside{grid-row:3;border-right:0;border-top:1px solid var(--line)}
+  .pane{overflow:visible}
+  .legend{display:none}
+  .chips{margin-left:0}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <header>
+    <h1>Lumaco Fuego 3D <small>Simulador de propagación y coordinación interinstitucional · Región de La Araucanía</small></h1>
+    <div class="chips">
+      <span class="chip" id="chipShare"><span class="dot"></span><span id="chipShareTxt">Conectando…</span></span>
+      <span class="chip" id="chipNino" hidden><span class="dot"></span>Escenario El Niño</span>
+      <span class="chip"><span class="dot" style="background:var(--warn)"></span>Prototipo · uso referencial</span>
+    </div>
+  </header>
+
+  <aside>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-sim" aria-selected="true" aria-controls="pane-sim">Simulación</button>
+      <button role="tab" id="tab-res" aria-selected="false" aria-controls="pane-res">Recursos</button>
+      <button role="tab" id="tab-cap" aria-selected="false" aria-controls="pane-cap">Mapa</button>
+      <button role="tab" id="tab-log" aria-selected="false" aria-controls="pane-log">Bitácora</button>
+    </div>
+
+    <div class="pane" id="pane-sim" role="tabpanel">
+      <div class="sec">
+        <h2><span class="n">1</span>Dónde comienza el fuego</h2>
+        <div class="btns">
+          <button class="btn primary" id="btnIgnite">Marcar foco en el mapa</button>
+          <button class="btn" id="btnBreak">Trazar cortafuego</button>
+          <button class="btn" id="btnPerim">Dibujar perímetro actual</button>
+          <button class="btn" id="btnPerimClear" hidden>Quitar perímetro</button>
+          <button class="btn" id="btnClearBreaks" hidden>Quitar cortafuegos</button>
+        </div>
+        <p class="note" id="igniteInfo" style="margin-top:8px"></p>
+      </div>
+
+      <div class="sec">
+        <h2><span class="n">2</span>Cuándo y con qué clima</h2>
+        <div class="seg" id="wxSeg" style="margin-bottom:10px">
+          <button aria-pressed="true" data-wx="auto" type="button">Pronóstico por fecha</button>
+          <button aria-pressed="false" data-wx="manual" type="button">Escenario manual</button>
+        </div>
+        <div id="wxAuto">
+          <div class="two" style="margin-bottom:8px">
+            <label class="fld">Día de inicio<select id="inDay"></select></label>
+            <label class="fld">Hora de inicio<select id="inHour"></select></label>
+          </div>
+          <div class="wxbox" id="wxBox"></div>
+          <label class="toggle" id="worstRow" style="margin-top:8px" hidden><input type="checkbox" id="inWorst">
+            <div><b>Usar el caso desfavorable de viento</b><span id="worstTxt">Suma al viento la diferencia entre las corridas del pronóstico.</span></div>
+          </label>
+          <p class="note" id="wxSrc" style="margin-top:6px"></p>
+        </div>
+        <div id="wxManual" hidden>
+        <div class="btns" style="margin-bottom:10px">
+          <button class="btn" data-preset="normal">Tarde de verano</button>
+          <button class="btn" data-preset="critico">Día crítico 30-30-30</button>
+          <button class="btn" data-preset="puelche">Puelche (viento del este)</button>
+        </div>
+        <div class="row"><label for="inT">Temperatura</label><input type="range" id="inT" min="10" max="42" step="1"><output id="outT"></output></div>
+        <div class="row"><label for="inRH">Humedad rel.</label><input type="range" id="inRH" min="8" max="90" step="1"><output id="outRH"></output></div>
+        <div class="row"><label for="inWS">Viento</label><input type="range" id="inWS" min="0" max="70" step="1"><output id="outWS"></output></div>
+        <div class="row"><label for="inWD">Viene desde</label><input type="range" id="inWD" min="0" max="359" step="5"><output id="outWD"></output></div>
+                  <p class="note">Valores fijos para toda la proyección, útiles para ensayar un caso hipotético.</p>
+        </div>
+        <div style="margin-top:10px"><div class="row"><label for="inH">Proyectar</label><input type="range" id="inH" min="3" max="24" step="1"><output id="outH"></output></div></div>
+
+      </div>
+
+      <div class="sec">
+        <h2><span class="n">3</span>Hacia dónde avanza</h2>
+        <div class="dirwrap">
+          <div class="dirpad" id="dirPad" role="group" aria-label="Dirección del avance">
+            <button type="button" data-dir="315" aria-label="Hacia el noroeste">↖</button><button type="button" data-dir="0" aria-label="Hacia el norte">↑</button><button type="button" data-dir="45" aria-label="Hacia el noreste">↗</button>
+            <button type="button" data-dir="270" aria-label="Hacia el oeste">←</button><button type="button" data-dir="auto" aria-pressed="true">Auto</button><button type="button" data-dir="90" aria-label="Hacia el este">→</button>
+            <button type="button" data-dir="225" aria-label="Hacia el suroeste">↙</button><button type="button" data-dir="180" aria-label="Hacia el sur">↓</button><button type="button" data-dir="135" aria-label="Hacia el sureste">↘</button>
+          </div>
+          <div style="min-width:0"><div class="dirnow" id="dirNow">–</div><p class="note" id="dirNote"></p></div>
+        </div>
+      </div>
+
+      <details class="adv">
+        <summary>Supuestos del escenario</summary>
+        <div>
+          <label class="toggle"><input type="checkbox" id="inRoad" checked>
+            <div><b>Los caminos principales frenan el fuego</b><span>Al cruzar una ruta principal el avance baja al 30 % y en caminos secundarios al 50 %. No lo detienen: el fuego puede saltarlos. Valores de referencia.</span></div>
+          </label>
+          <label class="toggle"><input type="checkbox" id="inNino">
+            <div><b>Escenario El Niño</b><span>Supuesto editable: +2 °C, −8 puntos de humedad y 25 % más pasto y matorral fino seco (más carga tras un invierno y primavera lluviosos). Son valores de referencia, no un pronóstico; hay que calibrarlos con DMC y CONAF.</span></div>
+          </label>
+        </div>
+      </details>
+
+      <div class="sec">
+        <h2>Resultado de la proyección</h2>
+        <div class="stats">
+          <div class="stat"><div class="k">Área afectada</div><div class="v" id="stArea">–</div></div>
+          <div class="stat"><div class="k">Avance máx. puntual</div><div class="v" id="stRos">–</div></div>
+          <div class="stat"><div class="k">Humedad comb.</div><div class="v" id="stFmc">–</div></div>
+          <div class="stat"><div class="k">Eje principal</div><div class="v" id="stDir">–</div></div>
+          <div class="stat"><div class="k">Edificaciones dentro</div><div class="v" id="stBld">–</div></div>
+          <div class="stat"><div class="k">Localidades dentro</div><div class="v" id="stLoc">–</div></div>
+          <div class="stat wide" id="cutBox" hidden><div class="k">Localidades con salida cortada por el fuego</div><div id="stCut"></div><p class="note" style="margin-top:4px">Estimación según la red de caminos de OpenStreetMap; no considera el estado real de los caminos.</p></div>
+          <div class="stat wide"><div class="k" id="stEtaK">Llegada estimada del fuego a localidades</div><div id="stEta"></div></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="btns">
+          <button class="btn" id="btnShareScn">Compartir este escenario</button>
+        </div>
+        <p class="note" style="margin-bottom:6px">Modelo simplificado y sin calibrar con incendios reales de la zona. Sirve para comparar escenarios y coordinar, no para decidir evacuaciones ni reemplazar el análisis de CONAF.</p>
+        <p class="note" id="scnInfo" style="margin-top:6px">Publica el foco, el clima y los cortafuegos para que todas las instituciones vean la misma proyección.</p>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-res" role="tabpanel" hidden>
+      <div class="sec">
+        <div class="btns">
+          <button class="btn primary" id="btnAddRes">Agregar recurso en el mapa</button>
+          <button class="btn" id="btnDemo">Ver ejemplos</button>
+        </div>
+        <p class="note" style="margin-top:8px" id="resNote">Toca el botón y luego el punto del mapa donde está la brigada o máquina. Todas las instituciones con acceso ven los cambios en vivo.</p>
+      </div>
+      <div id="resForm"></div>
+      <div class="sec">
+        <h2>Filtrar por institución</h2>
+        <div class="filters" id="filters"></div>
+      </div>
+      <div class="sec">
+        <h2 id="resCount">Recursos</h2>
+        <div class="res-list" id="resList"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-log" role="tabpanel" hidden>
+      <div class="sec">
+        <h2>Anotar en la bitácora</h2>
+        <form id="logForm" style="display:flex;gap:6px">
+          <input id="logTxt" maxlength="240" placeholder="Ej.: Brigada CONAF llega al sector Pililmapu" autocomplete="off" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--field)">
+          <button class="btn primary" type="submit">Anotar</button>
+        </form>
+        <p class="note" style="margin-top:6px">También se anotan solos los cambios de recursos y los escenarios compartidos.</p>
+      </div>
+      <div class="sec">
+        <h2>Exportar</h2>
+        <div class="btns">
+          <button class="btn" id="btnKml" type="button">Situación en KML</button>
+          <button class="btn" id="btnCsv" type="button">Bitácora en CSV</button>
+        </div>
+        <p class="note" id="expNote" style="margin-top:6px">El KML lleva recursos, foco o perímetro, avance proyectado y localidades alcanzadas. Se abre en Google Earth o QGIS.</p>
+        <textarea id="expOut" readonly hidden rows="6" style="width:100%;margin-top:6px;font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:6px;background:var(--field);padding:6px"></textarea>
+      </div>
+      <div class="sec">
+        <h2 id="logCount">Registro</h2>
+        <div id="logList"></div>
+      </div>
+    </div>
+
+    <div class="pane" id="pane-cap" role="tabpanel" hidden>
+      <div class="sec">
+        <h2>Ir a una localidad</h2>
+        <input id="inLoc" list="locList" placeholder="Escribe un nombre, p. ej. Pichipellahuén" autocomplete="off" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--field)">
+        <datalist id="locList"></datalist>
+        <p class="note" id="locInfo" style="margin-top:6px"></p>
+      </div>
+      <div class="sec">
+        <h2>Imagen base</h2>
+        <div class="seg" id="baseSeg">
+          <button aria-pressed="true" data-base="sat">Satélite</button>
+          <button aria-pressed="false" data-base="lc">Combustibles</button>
+          <button aria-pressed="false" data-base="hs">Relieve</button>
+        </div>
+      </div>
+      <div class="sec">
+        <h2>Capas</h2>
+        <label class="layer"><input type="checkbox" id="lyFire" checked> Propagación e isócronas</label>
+        <label class="layer"><input type="checkbox" id="lyArrow" checked> Flechas de avance</label>
+        <label class="layer"><input type="checkbox" id="lyBound" checked> Límite comunal</label>
+        <label class="layer"><input type="checkbox" id="lyRes" checked> Brigadas y máquinas</label>
+        <label class="layer"><input type="checkbox" id="lyTown" checked> Localidades y sectores</label>
+        <label class="layer"><input type="checkbox" id="lyPoi" checked> Escuelas, salud y servicios</label>
+        <label class="layer"><input type="checkbox" id="lyRoad" checked> Caminos</label>
+        <label class="layer"><input type="checkbox" id="lyWater" checked> Ríos, esteros y embalses</label>
+        <label class="layer"><input type="checkbox" id="lyBld"> Edificaciones</label>
+        <div class="row" style="margin-top:8px"><label for="inEx">Exageración vertical</label><input type="range" id="inEx" min="1" max="4" step="0.5" value="2"><output id="outEx"></output></div>
+      </div>
+      <div class="sec">
+        <h2>Fuentes de este prototipo</h2>
+        <table class="src">
+          <tr><td>Relieve</td><td>Copernicus DEM GLO-30 (ESA): malla 3D de 60 m y sombreado de 30 m; la simulación usa 100 m</td></tr>
+          <tr><td>Imagen</td><td>Sentinel-2B, 6 feb 2026, color natural a su resolución completa de 10 m por píxel, con realce de color y relieve (Copernicus)</td></tr>
+          <tr><td>Localidades, caminos, agua, edificaciones y servicios</td><td>Overture Maps, versión oct 2026 (basado en OpenStreetMap y huellas de edificios abiertas). Población por localidad según esa fuente; sin verificar en terreno</td></tr>
+          <tr><td>Combustibles</td><td>ESA WorldCover 2021, 10 m → 100 m (bosque y plantación no se distinguen)</td></tr>
+          <tr><td>Límite comunal</td><td>Cartografía comunal BCN/IDE, vía repositorio público chile-geojson</td></tr>
+          <tr><td>Clima</td><td>Pronóstico NOAA GFS 0,25°, horario a 5 días y cada 3 h hasta 7 días, leído desde su repositorio público y actualizado por una tarea programada</td></tr>
+          <tr><td>Modelo</td><td>Autómata celular de tiempo de llegada (16 vecinos) con factores tipo Rothermel: combustible, viento, pendiente, humedad</td></tr>
+        </table>
+        <p class="note" style="margin-top:8px">Las proyecciones son estimaciones para apoyar la coordinación. Usan el viento, la temperatura y la humedad pronosticados hora a hora, pero no incluyen pavesas ni combate, y no reemplazan el pronóstico de CONAF.</p>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div id="view"></div>
+    <div id="labels" aria-hidden="true"></div>
+    <div class="hud sum" id="sum">
+      <div class="sum-top">
+        <div class="sum-arrow" aria-hidden="true"><svg id="sumArrow" width="24" height="24" viewBox="-12 -12 24 24"><path d="M0-9L7 3H2.5V9h-5V3H-7Z" fill="#fff"/></svg></div>
+        <div style="min-width:0"><div class="sum-h" id="sumH">Calculando…</div><div class="sum-s" id="sumS"></div></div>
+      </div>
+      <div class="sum-n" id="sumN"></div>
+      <div class="btns">
+        <button class="btn primary" id="mapIgnite" type="button">Marcar foco</button>
+        <button class="btn" id="mapBreak" type="button">Cortafuego</button>
+        <button class="btn" id="mapAdd" type="button">Recurso</button>
+      </div>
+    </div>
+    <div class="hud tools">
+      <button type="button" id="zIn" aria-label="Acercar" title="Acercar">+</button>
+      <button type="button" id="zOut" aria-label="Alejar" title="Alejar">−</button>
+      <button type="button" id="zHome" aria-label="Vista inicial" title="Vista inicial">⌂</button>
+    </div>
+    <div id="loading">Cargando terreno de Lumaco…</div>
+    <div class="hud hint" id="hint" hidden><span id="hintTxt"></span><button type="button" id="hintDone" hidden>Terminar</button><button type="button" id="hintX" aria-label="Cancelar">×</button></div>
+    <div class="hud banner" id="banner" hidden><span id="bannerTxt"></span><button class="btn" id="bannerLoad">Cargar</button><button class="btn" id="bannerX" aria-label="Cerrar">×</button></div>
+    <div class="hud compass" title="Norte"><svg width="40" height="40" viewBox="-20 -20 40 40" id="compassSvg"><g id="compassRot"><path d="M0-15L5 0H-5Z" fill="var(--crit)"/><path d="M0 15L5 0H-5Z" fill="var(--muted)"/><text y="-4" x="0" font-size="0" fill="var(--ink)">N</text></g></svg></div>
+    <div class="hud legend" id="legend">
+      <h3>Tiempo de llegada del fuego</h3>
+      <div class="li"><span class="sw" style="background:#fff3b0"></span>Frente activo</div>
+      <div class="lgbar"></div>
+      <div class="lgticks"><span>0</span><span>1</span><span>3</span><span>6</span><span>12</span><span>24 h</span></div>
+      <div class="li"><span class="sw" style="background:transparent;border:2px dashed #fff"></span>Avance proyectado</div>
+    </div>
+    <div class="hud timebar">
+      <button class="btn" id="btnPlay" aria-label="Reproducir">▶</button>
+      <div class="clock"><span id="clock">+0:00</span><small id="clockSub">desde el inicio</small></div>
+      <input type="range" id="inTime" min="0" max="12" step="0.25" value="12" aria-label="Hora de la proyección">
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const DATA = /*DATA*/null;
+</script>
+<script>
+(function(){
+"use strict";
+const $ = id => document.getElementById(id);
+const [W,S,E,N] = DATA.bbox, NX = DATA.nx, NY = DATA.ny;
+const MIDLAT = (S+N)/2*Math.PI/180;
+const WM = (E-W)*111320*Math.cos(MIDLAT), HM = (N-S)*110950;
+const DX = WM/NX, DY = HM/NY, U = 10; // 1 unidad 3D = 10 m
+const b2u8 = s => { const b = atob(s), a = new Uint8Array(b.length); for (let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; };
+const ELEV = new Uint16Array(b2u8(DATA.elev).buffer);
+const LC = b2u8(DATA.lc);
+const LOCS = DATA.loc.map(([n,lon,lat,pop,kind,inC],k)=>({k,n,lon,lat,pop,kind,inC}));
+const BLD = b2u8(DATA.bld);
+const ROADF = new Uint8Array(NX*NY), ROADALL = new Uint8Array(NX*NY);   // 1 = ruta principal, 2 = secundaria; ROADALL = cualquier camino
+{ const sx=NX/((E-W)*1e5), sy=NY/((N-S)*1e5);
+  const plot=(i,j,c)=>{ if(i<0||j<0||i>=NX||j>=NY) return; const k=j*NX+i; ROADALL[k]=1; if(c<2 && (!ROADF[k]||c+1<ROADF[k])) ROADF[k]=c+1; };
+  for (const [c,a] of DATA.roads) for(let n=0;n+3<a.length;n+=2){ let x0=Math.floor(a[n]*sx), y0=Math.floor(a[n+1]*sy); const x1=Math.floor(a[n+2]*sx), y1=Math.floor(a[n+3]*sy);
+    const dx=Math.abs(x1-x0), dy=-Math.abs(y1-y0), ex=x0<x1?1:-1, ey=y0<y1?1:-1; let err=dx+dy;
+    for(let g=0;g<2000;g++){ plot(x0,y0,c); if(x0===x1&&y0===y1) break; const e2=2*err; if(e2>=dy){err+=dy;x0+=ex;} if(e2<=dx){err+=dx;y0+=ey;} } } }
+const EXITS = []; for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ if((i<2||j<2||i>=NX-2||j>=NY-2) && ROADF[j*NX+i]) EXITS.push(j*NX+i); }
+function polyCells(poly){   // celdas cuyo centro cae dentro del polígono [[lon,lat],...]
+  let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity; for(const [lo,la] of poly){ x0=Math.min(x0,lo);x1=Math.max(x1,lo);y0=Math.min(y0,la);y1=Math.max(y1,la); }
+  const [ia,ja]=lonlatToCell(x0,y1), [ib,jb]=lonlatToCell(x1,y0), out=[];
+  for(let j=Math.max(0,ja);j<=Math.min(NY-1,jb);j++)for(let i=Math.max(0,ia);i<=Math.min(NX-1,ib);i++){ const [lo,la]=cellToLonLat(i,j); let ins=false;
+    for(let a=0,b=poly.length-1;a<poly.length;b=a++){ const [xa,ya]=poly[a],[xb,yb]=poly[b]; if(((ya>la)!==(yb>la)) && (lo<(xb-xa)*(la-ya)/(yb-ya)+xa)) ins=!ins; }
+    if(ins) out.push(j*NX+i); }
+  return out;
+}
+function setPerim(poly){
+  st.perim = poly && poly.length>=3 ? poly : null; st.perimCells = st.perim ? polyCells(st.perim) : null;
+  if (st.perim && !st.perimCells.length){ st.perim=null; st.perimCells=null; }
+  if (st.perim){ let sx=0,sy=0; for(const c of st.perimCells){ sx+=c%NX; sy+=(c/NX)|0; } const [lo,la]=cellToLonLat(Math.round(sx/st.perimCells.length), Math.round(sy/st.perimCells.length)); st.ign={lon:lo,lat:la}; st.ignDemo=false; }
+}
+function safeRoads(tMin){   // celdas de camino con salida hacia el borde sin cruzar lo quemado
+  const seen=new Uint8Array(NX*NY), q=new Int32Array(ROADALL.length); let h=0, n=0;
+  for (const c of EXITS) if(!(arrival[c]<=tMin)){ seen[c]=1; q[n++]=c; }
+  while(h<n){ const c=q[h++], ci=c%NX, cj=(c/NX)|0;
+    for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){ const ni=ci+di,nj=cj+dj; if(ni<0||nj<0||ni>=NX||nj>=NY) continue; const k=nj*NX+ni; if(seen[k]||!ROADALL[k]||arrival[k]<=tMin) continue; seen[k]=1; q[n++]=k; } }
+  return seen;
+}
+function locsWithExit(tMin){
+  const seen=safeRoads(tMin), out=new Set();
+  for (const l of LOCS){ if (l.kind===3) continue; const [i,j]=lonlatToCell(l.lon,l.lat); if(i<0||j<0||i>=NX||j>=NY) continue;
+    let ok=false; for(let dj=-4;dj<=4&&!ok;dj++)for(let di=-4;di<=4;di++){ const ni=i+di,nj=j+dj; if(ni<0||nj<0||ni>=NX||nj>=NY) continue; if(seen[nj*NX+ni]){ok=true;break;} }
+    if (ok) out.add(l); }
+  return out;
+}
+let baseExit=null;
+if (window.__LITE) window.__dbg={exits:()=>EXITS.length, base:()=>locsWithExit(-1).size, locs:()=>LOCS.filter(l=>l.kind!==3).length, at:t=>({ok:locsWithExit(t).size, cut:isolatedLocs(t).map(l=>l.n)})};
+function isolatedLocs(tMin){   // localidades aún no quemadas que tenían salida por camino y la pierden
+  if (!arrival) return []; if (!baseExit) baseExit=locsWithExit(-1);
+  const now=locsWithExit(tMin), out=[];
+  for (const l of baseExit){ if (now.has(l)) continue; const [i,j]=lonlatToCell(l.lon,l.lat); if (arrival[j*NX+i]<=tMin) continue; out.push(l); }
+  return out;
+}
+const NARROW = Math.min(window.innerWidth, screen.width||9999) <= 820;
+
+// ---------- Combustibles (clases ESA WorldCover) ----------
+const FUEL = {
+  10:{n:"Bosque / plantación",ros:1.0,fine:false,c:[34,92,52]},
+  20:{n:"Matorral",ros:1.5,fine:true,c:[150,140,60]},
+  30:{n:"Pastizal",ros:2.0,fine:true,c:[214,196,96]},
+  40:{n:"Cultivo / rastrojo",ros:1.2,fine:true,c:[232,160,110]},
+  50:{n:"Zona urbana",ros:0.15,fine:false,c:[160,70,70]},
+  60:{n:"Suelo desnudo",ros:0,fine:false,c:[190,185,175]},
+  80:{n:"Agua",ros:0,fine:false,c:[60,110,170]},
+  90:{n:"Humedal",ros:0.1,fine:false,c:[90,160,150]},
+};
+const fuelOf = k => FUEL[k] || {n:"Sin dato",ros:0,c:[120,120,120]};
+
+// ---------- Estado ----------
+const PRESETS = {
+  normal:{T:27,RH:38,WS:18,WD:225},
+  critico:{T:33,RH:22,WS:32,WD:225},
+  puelche:{T:31,RH:20,WS:35,WD:90},
+};
+const st = {
+  ign:{lon:-72.960,lat:-38.205}, ignDemo:true, wx:'manual', start:null, dirTo:null, perim:null, perimCells:null, draft:null, roadBrake:true, worst:false, T:30, RH:28, WS:26, WD:225, H:12, nino:true,
+  breaks:[], t:12, base:"sat", exag:2, mode:null, breakStart:null,
+  layers:{fire:true,bound:true,res:true,town:true,poi:true,road:true,water:true,bld:false,arrow:true},
+};
+let arrival = null, simInfo = {};
+const BURN_BLOCK = new Uint8Array(NX*NY);
+
+const lonlatToCell = (lon,lat) => [Math.floor((lon-W)/(E-W)*NX), Math.floor((N-lat)/(N-S)*NY)];
+const cellToLonLat = (i,j) => [W+(i+.5)/NX*(E-W), N-(j+.5)/NY*(N-S)];
+const elevAt = (lon,lat) => {
+  const x = (lon-W)/(E-W)*NX-.5, y=(N-lat)/(N-S)*NY-.5;
+  const i=Math.max(0,Math.min(NX-2,Math.floor(x))), j=Math.max(0,Math.min(NY-2,Math.floor(y)));
+  const fx=Math.min(1,Math.max(0,x-i)), fy=Math.min(1,Math.max(0,y-j));
+  const e=(a,b)=>ELEV[b*NX+a];
+  return (e(i,j)*(1-fx)+e(i+1,j)*fx)*(1-fy)+(e(i,j+1)*(1-fx)+e(i+1,j+1)*fx)*fy;
+};
+const toWorld = (lon,lat,h=0) => new THREE.Vector3(((lon-W)/(E-W)-.5)*WM/U, (elevAt(lon,lat)*st.exag+h)/U, ((N-lat)/(N-S)-.5)*HM/U);
+const dirName = deg => ["N","NE","E","SE","S","SO","O","NO"][Math.round(((deg%360)+360)%360/45)%8];
+const fmtH = h => { if(!isFinite(h)) return "—"; const m=Math.round(h*60); return `${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`; };
+
+// ---------- Modelo de propagación ----------
+function effOf(w){
+  const T = w.T + (st.nino?2:0), RH = Math.max(5, w.RH - (st.nino?8:0));
+  const fmc = Math.min(25, Math.max(2, 2 + 0.2*RH - 0.06*(T-20)));
+  return {T,RH,fmc, fm:Math.exp(-0.11*(fmc-8)), fineMul: st.nino?1.25:1};
+}
+// ---------- Pronóstico (serie horaria) ----------
+let WX = null, wxMap = null;   // {fuente, corrida, generado, h:[[horaUnix,T,HR,viento,dir,racha],...]}
+const TZ = "America/Santiago";
+const fmtDay = new Intl.DateTimeFormat("es-CL",{timeZone:TZ,weekday:"short",day:"numeric",month:"short"});
+const fmtHr = new Intl.DateTimeFormat("es-CL",{timeZone:TZ,hour:"2-digit",hourCycle:"h23"});
+const fmtKey = new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"});
+const hourOf = eh => parseInt(fmtHr.format(new Date(eh*3600e3)),10);
+function setWX(doc){
+  if (!doc || !Array.isArray(doc.h) || doc.h.length<2) return false;
+  if (WX && WX.corrida >= String(doc.corrida)) return false;
+  const rows = doc.h.filter(r=>Array.isArray(r)&&r.length>=5&&r.every(v=>typeof v==="number"&&isFinite(v))).sort((a,b)=>a[0]-b[0]);
+  if (rows.length<2) return false;
+  WX = {fuente:String(doc.fuente||"Pronóstico"), corrida:String(doc.corrida||""), generado:String(doc.generado||""), lat:+doc.lat||null, lon:+doc.lon||null, h:rows, first:rows[0][0], last:rows[rows.length-1][0]};
+  wxMap = new Map(rows.map(r=>[r[0],r]));
+  return true;
+}
+function wxAtHour(eh){   // interpola entre horas disponibles
+  if (!WX) return null; eh = Math.max(WX.first, Math.min(WX.last, eh));
+  const r = wxMap.get(eh); if (r) return {T:r[1],RH:r[2],WS:r[3],WD:r[4],G:r[5]||0,S:r[6]||0};
+  let a=null,b=null; for (const x of WX.h){ if (x[0]<eh) a=x; else { b=x; break; } }
+  const f=(eh-a[0])/(b[0]-a[0]), L=(i)=>a[i]+(b[i]-a[i])*f;
+  const ua=-a[3]*Math.sin(a[4]*Math.PI/180), va=-a[3]*Math.cos(a[4]*Math.PI/180), ub=-b[3]*Math.sin(b[4]*Math.PI/180), vb=-b[3]*Math.cos(b[4]*Math.PI/180);
+  const u=ua+(ub-ua)*f, v=va+(vb-va)*f;
+  return {T:L(1),RH:L(2),WS:L(3),WD:(Math.atan2(-u,-v)*180/Math.PI+360)%360,G:L(5)||0,S:L(6)||0};
+}
+const autoOn = () => st.wx==="auto" && WX && st.start!=null;
+function wxSeries(){   // clima para cada hora de la proyección
+  const out=[]; for (let k=0;k<=st.H;k++){ const w = autoOn() ? wxAtHour(st.start+k) : {T:st.T,RH:st.RH,WS:st.WS,WD:st.WD,G:0,S:0};
+    if (st.worst && autoOn()){ w.WS+=w.S; w.G+=w.S; }
+    if (st.dirTo!=null && autoOn()){ w.WD=(st.dirTo+180)%360; w.WS=Math.max(w.WS,5); } out.push(w); }
+  return out;
+}
+const NB = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1],[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+function simulate(){
+  const series = wxSeries(), effs = series.map(effOf);
+  const nbH = series.map(w=>{ const V = w.WS/3.6, to = (w.WD+180)*Math.PI/180, wx=Math.sin(to), wy=Math.cos(to); const f=new Float32Array(16);
+    NB.forEach(([di,dj],k)=>{ const ex=di*DX, ny=-dj*DY, d=Math.hypot(ex,ny), c=(ex*wx+ny*wy)/d; f[k] = c>=0 ? Math.min(25, Math.exp(0.25*V*c)) : Math.max(0.35, Math.exp(0.08*V*c)); }); return f; });
+  const baseH = effs.map(eff=>{ const b=new Float32Array(256); for (const k in FUEL) b[k] = FUEL[k].ros*(FUEL[k].fine?eff.fineMul:1)*eff.fm; return b; });
+  const nb = NB.map(([di,dj])=>({o:dj*NX+di, di, dj, d:Math.hypot(di*DX,dj*DY)}));
+  const eff = effs[0];
+  const maxMin = st.H*60;
+  const T = new Float32Array(NX*NY).fill(Infinity), par = new Int32Array(NX*NY).fill(-1);
+  // heap
+  let hv = new Float32Array(1<<16), hi = new Int32Array(1<<16), hn=0;
+  const push=(v,i)=>{ if(hn>=hv.length){const a=new Float32Array(hv.length*2);a.set(hv);hv=a;const b=new Int32Array(hi.length*2);b.set(hi);hi=b;}
+    let k=hn++; while(k>0){const p=(k-1)>>1; if(hv[p]<=v)break; hv[k]=hv[p];hi[k]=hi[p];k=p;} hv[k]=v;hi[k]=i; };
+  const pop=()=>{ const v=hv[0],i=hi[0]; const lv=hv[--hn],li=hi[hn]; let k=0;
+    while(true){let c=2*k+1; if(c>=hn)break; if(c+1<hn&&hv[c+1]<hv[c])c++; if(hv[c]>=lv)break; hv[k]=hv[c];hi[k]=hi[c];k=c;}
+    hv[k]=lv;hi[k]=li; return [v,i]; };
+  const [i0,j0] = lonlatToCell(st.ign.lon, st.ign.lat);
+  if (i0<0||j0<0||i0>=NX||j0>=NY) return {T, eff, effs, series, maxRos:0};
+  if (st.perimCells) for (const c of st.perimCells){ T[c]=0; push(0,c); }
+  else { const s0=j0*NX+i0; T[s0]=0; push(0,s0); }
+  const brake = st.roadBrake;
+  let maxRos = 0;
+  while(hn){
+    const [t,c] = pop(); if (t>T[c]) continue; if (t>maxMin) break;
+    const ci=c%NX, cj=(c/NX)|0, ec=ELEV[c], hk=Math.min(st.H,(t/60)|0), base=baseH[hk], fwH=nbH[hk];
+    for (let k=0;k<16;k++){
+      const n=nb[k], ni=ci+n.di, nj=cj+n.dj;
+      if (ni<0||nj<0||ni>=NX||nj>=NY) continue;
+      const q=c+n.o; if (BURN_BLOCK[q]) continue;
+      const b = base[LC[q]]; if (!(b>0)) continue;
+      const sl = Math.atan((ELEV[q]-ec)/n.d)*57.2958;
+      const fs = sl>=0 ? Math.min(3,Math.exp(0.069*sl)) : Math.max(0.5,Math.exp(0.035*sl));
+      const rf = brake ? ROADF[q] : 0, ros = b*Math.min(25,fwH[k]*fs)*(rf===1?.3:rf===2?.5:1); // m/min
+      const nt = t + n.d/ros;
+      if (nt < T[q]){ T[q]=nt; par[q]=c; push(nt,q); if(ros>maxRos && nt<=maxMin) maxRos=ros; }
+    }
+  }
+  // eje principal: la celda alcanzada más lejana y el camino más rápido hasta ella
+  let head=-1, best=0; for (let c=0;c<T.length;c++){ if (T[c]<=maxMin){ const dx=((c%NX)-i0)*DX, dy=(((c/NX)|0)-j0)*DY, d2=dx*dx+dy*dy; if(d2>best){best=d2;head=c;} } }
+  let headPath=[], headDir=null, headKm=Math.sqrt(best)/1000, headMin=head>=0?T[head]:0;
+  if (head>=0 && headKm>0.3){ for(let c=head, n=0; c>=0 && n<4000; c=par[c], n++) headPath.push(c); headPath.reverse();
+    headDir=(Math.atan2(((head%NX)-i0)*DX, -(((head/NX)|0)-j0)*DY)*180/Math.PI+360)%360; }
+  return {T, eff, effs, series, maxRos, headPath, headDir, headKm, headMin};
+}
+
+function runSim(){
+  const r = simulate();
+  arrival = r.T; simInfo = r;
+  // horas
+  st.t = Math.min(st.t, st.H);
+  $("inTime").max = st.H; $("inTime").value = st.t;
+  uploadArrival(); drawArrows(); updateStats(); updateResources3D(); renderResList(); renderWx(); renderDir();
+}
+
+// ---------- Escena 3D ----------
+const view = $("view");
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+view.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 5, 60000);
+const controls = new THREE.MapControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.12; controls.maxPolarAngle = Math.PI*0.47;
+controls.minDistance = 150; controls.maxDistance = 14000; controls.screenSpacePanning = false;
+// ---------- Terreno, texturas y sombreado ----------
+const isGL2 = renderer.capabilities.isWebGL2;
+const HI = !NARROW && isGL2 && renderer.capabilities.maxTextureSize >= 4096 && !window.__LITE;
+const aniso = renderer.capabilities.getMaxAnisotropy();
+const texLoader = new THREE.TextureLoader();
+function mkCanvas(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c;}
+const prepTex = t => { t.encoding = THREE.sRGBEncoding; t.anisotropy = aniso; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return t; };
+const px1 = (r,g,b) => { const t = new THREE.DataTexture(new Uint8Array([r,g,b,255]),1,1); t.encoding = THREE.sRGBEncoding; t.needsUpdate = true; return t; };
+const OVW = Math.min(NARROW?2048:4096, renderer.capabilities.maxTextureSize), OVH = Math.round(OVW*NY*DY/(NX*DX));
+const ovCanvas = mkCanvas(OVW,OVH), tctx = ovCanvas.getContext("2d"), ovTex = prepTex(new THREE.CanvasTexture(ovCanvas));
+const ARW = NARROW?1024:2048, arwCanvas = mkCanvas(ARW, Math.round(ARW*OVH/OVW)), actx = arwCanvas.getContext("2d"), arwTex = prepTex(new THREE.CanvasTexture(arwCanvas));
+const altCanvas = {lc:mkCanvas(NX,NY), hs:mkCanvas(NX,NY)};
+const altTex = {lc:prepTex(new THREE.CanvasTexture(altCanvas.lc)), hs:prepTex(new THREE.CanvasTexture(altCanvas.hs))};
+const arrData = isGL2 ? new Uint16Array(NX*NY) : new Float32Array(NX*NY);
+const arrTex = new THREE.DataTexture(arrData, NX, NY, THREE.RedFormat, isGL2?THREE.HalfFloatType:THREE.FloatType);
+arrTex.magFilter = arrTex.minFilter = isGL2?THREE.LinearFilter:THREE.NearestFilter; arrTex.generateMipmaps = false; arrTex.needsUpdate = true;
+const FAR_T = 30000;
+const shared = {
+  uOv:{value:ovTex}, uArw:{value:arwTex}, uAlt:{value:altTex.lc}, uHs:{value:px1(190,190,190)}, uArr:{value:arrTex},
+  uBase:{value:0}, uT:{value:0}, uH:{value:720}, uTime:{value:0}, uFire:{value:1},
+  uFog:{value:new THREE.Color(0xcfd9e2)}, uFogNear:{value:5000}, uFogFar:{value:26000},
+};
+const VERT = `varying vec2 vUv; varying float vDist;
+void main(){ vUv = uv; vec4 mv = modelViewMatrix*vec4(position,1.0); vDist = length(mv.xyz); gl_Position = projectionMatrix*mv; }`;
+const FRAG = `uniform sampler2D uSat,uOv,uArw,uAlt,uHs,uArr; uniform vec4 uSatST;
+uniform float uBase,uT,uH,uTime,uFire,uFogNear,uFogFar; uniform vec3 uFog;
+varying vec2 vUv; varying float vDist;
+vec3 s2l(vec3 c){ return pow(c, vec3(2.2)); }
+vec3 ramp(float h){
+  vec3 c0=s2l(vec3(.42,.03,.03)), c1=s2l(vec3(.78,.10,.10)), c3=s2l(vec3(.93,.40,.09)), c6=s2l(vec3(.96,.64,.14)), c12=s2l(vec3(.97,.82,.36)), c24=s2l(vec3(1.,.95,.72));
+  if(h<1.) return mix(c0,c1,h); if(h<3.) return mix(c1,c3,(h-1.)/2.); if(h<6.) return mix(c3,c6,(h-3.)/3.); if(h<12.) return mix(c6,c12,(h-6.)/6.); return mix(c12,c24,clamp((h-12.)/12.,0.,1.));
+}
+float isoLine(float a, float fw, float v){ return v>uH+1. ? 0. : 1.-smoothstep(.7,1.7,abs(a-v)/fw); }
+void main(){
+  vec2 tuv = vec2(vUv.x, 1.-vUv.y);
+  vec3 col;
+  if(uBase<.5){ vec2 s=(vUv-uSatST.xy)*uSatST.zw; col = texture2D(uSat, vec2(s.x,1.-s.y)).rgb; }
+  else { col = texture2D(uAlt,tuv).rgb*(.28+1.9*texture2D(uHs,tuv).r); }
+  vec4 ov = texture2D(uOv,tuv); col = mix(col, ov.rgb, ov.a);
+  vec4 ar = texture2D(uArw,tuv);
+  if(uFire>.5){
+    float a = texture2D(uArr,vUv).r; float fw = max(fwidth(a),.02);
+    if(a<=uH){
+      float iso = 0.; if(fw<400.){ iso=max(iso,isoLine(a,fw,60.)); iso=max(iso,isoLine(a,fw,180.)); iso=max(iso,isoLine(a,fw,360.)); iso=max(iso,isoLine(a,fw,720.)); iso=max(iso,isoLine(a,fw,1440.)); }
+      if(a<=uT){
+        float age = uT-a;
+        float n = fract(sin(dot(floor(vUv*vec2(1680.,1560.)),vec2(12.9898,78.233)))*43758.5453);
+        float flick = .72+.28*sin(uTime*5.+n*6.2832);
+        vec3 fc = ramp(a/60.);
+        float ember = (1.-smoothstep(0.,75.,age))*.55*flick;
+        fc = mix(fc, s2l(vec3(1.,.42,.05)), ember);
+        fc *= 1.-.5*iso;
+        float front = 1.-smoothstep(0., max(9.,2.5*fw), age);
+        fc = mix(fc, s2l(vec3(1.,.93,.55))*(1.05+.35*flick), front);
+        col = mix(col, fc, mix(.56,.97,max(front,.6*iso)));
+      } else {
+        float dash = step(.5, fract((vUv.x+vUv.y)*230.));
+        col = mix(col, vec3(1.), .09+.8*iso*dash);
+      }
+    } else if(a<FAR_T-10.){ float k = 1.-(a-uH)/(FAR_T-uH); col = mix(col, vec3(1.), .75*pow(k,5.)); }
+  }
+  col = mix(col, ar.rgb, ar.a*uFire);
+  col = mix(col, uFog, .9*smoothstep(uFogNear,uFogFar,vDist));
+  gl_FragColor = vec4(col,1.);
+  #include <encodings_fragment>
+}`.replace(/FAR_T/g, FAR_T.toFixed(1));
+let satLo = px1(74,96,70);
+renderer.outputEncoding = THREE.sRGBEncoding;
+let satHi = null, hiDem = null;        // se cargan después del primer cuadro
+const tiles = new THREE.Group(); scene.add(tiles);
+let skirt = null;
+function heightSrc(){
+  if (hiDem) return hiDem;
+  const step = NARROW?2:1, gw=Math.floor((NX-1)/step)+1, gh=Math.floor((NY-1)/step)+1, d=new Float32Array(gw*gh);
+  for(let j=0;j<gh;j++)for(let i=0;i<gw;i++) d[j*gw+i]=ELEV[Math.min(NY-1,j*step)*NX+Math.min(NX-1,i*step)];
+  return {gw,gh,d,sim:true};
+}
+function buildTerrain(){
+  const {gw,gh,d,sim} = heightSrc(), nt = satHi?2:1, k = st.exag/U;
+  // en la grilla de simulación el valor es el centro de la celda; en el DEM fino, el borde
+  const uOf = i => sim ? (i*(NARROW?2:1)+.5)/NX : i/(gw-1), vOf = j => sim ? (j*(NARROW?2:1)+.5)/NY : j/(gh-1);
+  for (const m of tiles.children){ m.geometry.dispose(); } tiles.clear();
+  for(let ty=0;ty<nt;ty++)for(let tx=0;tx<nt;tx++){
+    const c0 = tx?Math.floor((gw-1)/2):0, c1 = (nt===2&&!tx)?Math.floor((gw-1)/2):gw-1, r0 = ty?Math.floor((gh-1)/2):0, r1 = (nt===2&&!ty)?Math.floor((gh-1)/2):gh-1;
+    const w=c1-c0+1, h=r1-r0+1, pos=new Float32Array(w*h*3), uv=new Float32Array(w*h*2), idx=new Uint32Array((w-1)*(h-1)*6);
+    for(let j=0;j<h;j++)for(let i=0;i<w;i++){ const p=j*w+i, u=uOf(c0+i), v=vOf(r0+j);
+      pos[p*3]=(u-.5)*WM/U; pos[p*3+1]=d[(r0+j)*gw+c0+i]*k; pos[p*3+2]=(v-.5)*HM/U; uv[p*2]=u; uv[p*2+1]=v; }
+    let q=0; for(let j=0;j<h-1;j++)for(let i=0;i<w-1;i++){ const a=j*w+i,b=a+1,c=a+w,e=c+1; idx[q++]=a;idx[q++]=c;idx[q++]=b; idx[q++]=b;idx[q++]=c;idx[q++]=e; }
+    const g=new THREE.BufferGeometry(); g.setAttribute("position",new THREE.BufferAttribute(pos,3)); g.setAttribute("uv",new THREE.BufferAttribute(uv,2)); g.setIndex(new THREE.BufferAttribute(idx,1));
+    g.computeBoundingSphere();
+    const mat = new THREE.ShaderMaterial({vertexShader:VERT, fragmentShader:FRAG, extensions:{derivatives:true},
+      uniforms:Object.assign({}, shared, {uSat:{value: satHi?satHi[ty*2+tx]:satLo}, uSatST:{value: satHi? new THREE.Vector4(tx*.5,ty*.5,2,2) : new THREE.Vector4(0,0,1,1)}})});
+    tiles.add(new THREE.Mesh(g,mat));
+  }
+  // faldón del bloque
+  const sp=[], si=[]; const edge=[]; 
+  for(let i=0;i<gw;i++) edge.push([i,0]); for(let j=1;j<gh;j++) edge.push([gw-1,j]); for(let i=gw-2;i>=0;i--) edge.push([i,gh-1]); for(let j=gh-2;j>=0;j--) edge.push([0,j]);
+  edge.forEach(([i,j],n)=>{ const x=(uOf(i)-.5)*WM/U, z=(vOf(j)-.5)*HM/U; sp.push(x,d[j*gw+i]*k,z, x,-40,z); if(n){ const a=(n-1)*2; si.push(a,a+1,a+2, a+2,a+1,a+3); } });
+  const sg=new THREE.BufferGeometry(); sg.setAttribute("position",new THREE.Float32BufferAttribute(sp,3)); sg.setIndex(si);
+  if (skirt){ skirt.geometry.dispose(); skirt.geometry=sg; } else { skirt=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0x2b2622,side:THREE.DoubleSide})); scene.add(skirt); }
+}
+function loadImg(src){ return new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=src; }); }
+async function loadAssets(){
+  try { const t = await texLoader.loadAsync("sat_lo.jpg"); prepTex(t); satLo=t; if(!satHi) for (const m of tiles.children) m.material.uniforms.uSat.value=t; $("loading").hidden=true; } catch(e){ $("loading").hidden=false; $("loading").textContent="No se pudo cargar la imagen satelital."; }
+  try { const t = await texLoader.loadAsync("hs.jpg"); t.anisotropy=aniso; shared.uHs.value=t; } catch(e){}
+  if (!HI) return;
+  try {
+    const img = await loadImg("dem.png"); const c=mkCanvas(img.width,img.height), x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(img,0,0);
+    const px=x.getImageData(0,0,c.width,c.height).data, d=new Float32Array(c.width*c.height); for(let i=0;i<d.length;i++) d[i]=(px[i*4]*256+px[i*4+1])/10;
+    if (d[0]>0 || d[d.length>>1]>0){ hiDem={gw:c.width,gh:c.height,d}; buildTerrain(); }
+  } catch(e){}
+  try {
+    const ts = await Promise.all(["sat_00.jpg","sat_01.jpg","sat_10.jpg","sat_11.jpg"].map(f=>texLoader.loadAsync(f)));
+    ts.forEach(prepTex); satHi=ts; buildTerrain();
+  } catch(e){}
+}
+
+// capas dibujadas sobre el terreno
+const ISO = [1,3,6,12,24];
+function buildAlt(){
+  const a=altCanvas.lc.getContext("2d"), b=altCanvas.hs.getContext("2d"), ia=a.createImageData(NX,NY), ib=b.createImageData(NX,NY);
+  for(let c=0;c<NX*NY;c++){ const f=fuelOf(LC[c]).c, p=c*4, e=Math.min(1,ELEV[c]/800);
+    ia.data[p]=f[0]; ia.data[p+1]=f[1]; ia.data[p+2]=f[2]; ia.data[p+3]=255;
+    ib.data[p]=150+70*e; ib.data[p+1]=165+25*e; ib.data[p+2]=130-10*e; ib.data[p+3]=255; }
+  a.putImageData(ia,0,0); b.putImageData(ib,0,0); altTex.lc.needsUpdate=true; altTex.hs.needsUpdate=true;
+}
+function setBase(b){ st.base=b; shared.uBase.value = b==="sat"?0:1; if(b!=="sat") shared.uAlt.value=altTex[b]; }
+function updateFire(){ shared.uT.value=st.t*60; shared.uH.value=st.H*60; shared.uFire.value=st.layers.fire?1:0; }
+function uploadArrival(){
+  const toH = THREE.DataUtils.toHalfFloat;
+  if (arrival) for(let c=0;c<arrData.length;c++){ const a=arrival[c]; const v = a<FAR_T ? a : FAR_T; arrData[c] = isGL2 ? toH(v) : v; }
+  arrTex.needsUpdate = true; updateFire();
+}
+function buildFireOverlay(){ updateFire(); }
+function drawArrows(){
+  const w=arwCanvas.width, h=arwCanvas.height, cw=w/NX, ch=h/NY, k=w/2048; actx.clearRect(0,0,w,h);
+  if (st.layers.arrow && arrival){
+    const maxMin=st.H*60; actx.lineCap="round"; actx.lineJoin="round";
+    const A=(i,j)=> (i<0||j<0||i>=NX||j>=NY) ? Infinity : arrival[j*NX+i];
+    // flechas pequeñas: sentido local del avance
+    const stp = NARROW?14:12;
+    for(let j=stp;j<NY-stp;j+=stp)for(let i=stp;i<NX-stp;i+=stp){ const a=A(i,j); if(!(a>25&&a<=maxMin)) continue;
+      const x1=A(i+2,j), x0=A(i-2,j), y1=A(i,j+2), y0=A(i,j-2); if(!(x1<FAR_T&&x0<FAR_T&&y1<FAR_T&&y0<FAR_T)) continue;
+      let gx=(x1-x0)/DX, gy=(y1-y0)/DY; const g=Math.hypot(gx,gy); if(g<1e-6) continue; gx/=g; gy/=g;
+      const cx=(i+.5)*cw, cy=(j+.5)*ch, L=2.7*cw, wx=-gy, wy=gx;
+      const tip=[cx+gx*L, cy+gy*L], tail=[cx-gx*L, cy-gy*L], b1=[cx+gx*L*.1+wx*L*.62, cy+gy*L*.1+wy*L*.62], b2=[cx+gx*L*.1-wx*L*.62, cy+gy*L*.1-wy*L*.62];
+      for (const [col,lw] of [["rgba(0,0,0,.5)",4.2*k],["rgba(255,255,255,.9)",2*k]]){ actx.strokeStyle=col; actx.lineWidth=lw; actx.beginPath(); actx.moveTo(tail[0],tail[1]); actx.lineTo(tip[0],tip[1]); actx.moveTo(b1[0],b1[1]); actx.lineTo(tip[0],tip[1]); actx.lineTo(b2[0],b2[1]); actx.stroke(); } }
+    // flecha grande: eje principal de avance
+    const hp=simInfo.headPath||[];
+    if (hp.length>6){
+      let pts=[]; for(let n=0;n<hp.length;n+=4) pts.push([(hp[n]%NX+.5)*cw, (((hp[n]/NX)|0)+.5)*ch]); const last=hp[hp.length-1]; pts.push([(last%NX+.5)*cw, (((last/NX)|0)+.5)*ch]);
+      for(let s=0;s<3;s++) pts=pts.map((p,n)=> n===0||n===pts.length-1 ? p : [(pts[n-1][0]+2*p[0]+pts[n+1][0])/4,(pts[n-1][1]+2*p[1]+pts[n+1][1])/4]);
+      const e=pts[pts.length-1], q=pts[Math.max(0,pts.length-4)]; let dx=e[0]-q[0], dy=e[1]-q[1]; const dl=Math.hypot(dx,dy)||1; dx/=dl; dy/=dl;
+      const hl=30*k, hw=17*k, base=[e[0]-dx*hl*.55, e[1]-dy*hl*.55], tip=[e[0]+dx*hl*.45, e[1]+dy*hl*.45];
+      const body=()=>{ actx.beginPath(); pts.forEach((p,n)=> n?actx.lineTo(p[0],p[1]):actx.moveTo(p[0],p[1])); actx.lineTo(base[0],base[1]); actx.stroke(); };
+      const hd=(g)=>{ actx.beginPath(); actx.moveTo(tip[0]+dx*g,tip[1]+dy*g); actx.lineTo(base[0]-dy*(hw+g)-dx*g, base[1]+dx*(hw+g)-dy*g); actx.lineTo(base[0]+dy*(hw+g)-dx*g, base[1]-dx*(hw+g)-dy*g); actx.closePath(); actx.fill(); };
+      actx.strokeStyle="rgba(10,10,10,.75)"; actx.lineWidth=13*k; body(); actx.fillStyle="rgba(10,10,10,.75)"; hd(4*k);
+      actx.strokeStyle="#ffffff"; actx.lineWidth=7.5*k; body(); actx.fillStyle="#ffffff"; hd(0);
+    }
+  }
+  arwTex.needsUpdate=true;
+}
+function recompose(){
+  const w=OVW, h=OVH; tctx.clearRect(0,0,w,h);
+  const P = (lon,lat)=>[(lon-W)/(E-W)*w,(N-lat)/(N-S)*h];
+  const k = w/4096, qx = w/((E-W)*1e5), qy = h/((N-S)*1e5);
+  const path = a => { tctx.beginPath(); tctx.moveTo(a[0]*qx,a[1]*qy); for(let i=2;i<a.length;i+=2) tctx.lineTo(a[i]*qx,a[i+1]*qy); };
+  const bound = () => { DATA.boundary.forEach(([lo,la],n)=>{const [x,y]=P(lo,la); n?tctx.lineTo(x,y):tctx.moveTo(x,y);}); tctx.closePath(); };
+  tctx.lineJoin="round"; tctx.lineCap="round";
+  if (st.layers.bound){ tctx.beginPath(); tctx.rect(0,0,w,h); bound(); tctx.fillStyle="rgba(12,18,22,.42)"; tctx.fill("evenodd"); }
+  if (st.layers.water){
+    tctx.fillStyle="rgba(40,110,170,.55)"; for (const a of DATA.wp){ path(a); tctx.closePath(); tctx.fill(); }
+    for (const [riv,a] of DATA.wl){ path(a); tctx.strokeStyle = riv?"rgba(110,190,245,.9)":"rgba(110,190,245,.6)"; tctx.lineWidth=(riv?2.6:1.3)*k; tctx.stroke(); }
+  }
+  if (st.layers.road){
+    const RS=[["rgba(40,30,10,.5)",5.2,"#ffd98a",3],["rgba(30,30,30,.35)",3.8,"rgba(255,250,235,.95)",2.1],[null,0,"rgba(255,250,235,.55)",1.3],[null,0,"rgba(255,250,235,.26)",.9]];
+    for (let c=3;c>=0;c--){ const [cas,cw,col,lw]=RS[c];
+      if (cas){ tctx.strokeStyle=cas; tctx.lineWidth=cw*k; for (const r of DATA.roads) if(r[0]===c){ path(r[1]); tctx.stroke(); } }
+      tctx.strokeStyle=col; tctx.lineWidth=Math.max(.7,lw*k); for (const r of DATA.roads) if(r[0]===c){ path(r[1]); tctx.stroke(); } }
+  }
+  if (st.layers.bld){
+    const cw=w/NX, ch=h/NY, s=Math.max(1.2,2.4*k); tctx.fillStyle="rgba(255,236,170,.85)";
+    for(let j=0;j<NY;j++)for(let i=0;i<NX;i++){ const n=BLD[j*NX+i]; if(n){ const z=s*(n>8?1.8:n>2?1.35:1); tctx.fillRect((i+.5)*cw-z/2,(j+.5)*ch-z/2,z,z); } }
+  }
+  if (st.layers.bound){
+    tctx.beginPath(); bound(); tctx.strokeStyle="rgba(0,0,0,.5)"; tctx.lineWidth=9*k; tctx.stroke();
+    tctx.strokeStyle="#ffe9a8"; tctx.lineWidth=3.6*k; tctx.stroke();
+  }
+  const poly = st.draft || st.perim;
+  if (poly && poly.length){ tctx.beginPath(); poly.forEach(([lo,la],n)=>{ const [x,y]=P(lo,la); n?tctx.lineTo(x,y):tctx.moveTo(x,y); }); if(!st.draft) tctx.closePath();
+    if(!st.draft){ tctx.fillStyle="rgba(40,8,8,.45)"; tctx.fill(); }
+    tctx.strokeStyle="rgba(0,0,0,.7)"; tctx.lineWidth=11*k; tctx.stroke(); tctx.strokeStyle="#ff4d3d"; tctx.lineWidth=5.5*k; if(st.draft) tctx.setLineDash([16*k,12*k]); tctx.stroke(); tctx.setLineDash([]);
+    if(st.draft) for(const [lo,la] of poly){ const [x,y]=P(lo,la); tctx.beginPath(); tctx.arc(x,y,9*k,0,7); tctx.fillStyle="#fff"; tctx.fill(); tctx.strokeStyle="#ff4d3d"; tctx.lineWidth=3*k; tctx.stroke(); } }
+  for (const b of st.breaks){ const [x1,y1]=P(b[0],b[1]),[x2,y2]=P(b[2],b[3]);
+    tctx.strokeStyle="rgba(0,0,0,.6)"; tctx.lineWidth=16*k; tctx.beginPath(); tctx.moveTo(x1,y1); tctx.lineTo(x2,y2); tctx.stroke();
+    tctx.strokeStyle="#7df9ff"; tctx.lineWidth=9*k; tctx.stroke(); }
+  ovTex.needsUpdate = true;
+}
+function setSky(){
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches ? document.documentElement.dataset.theme!=="light" : document.documentElement.dataset.theme==="dark";
+  const c=mkCanvas(4,256), x=c.getContext("2d"), g=x.createLinearGradient(0,0,0,256);
+  const stops = dark ? ["#0b1422","#18283c","#3b4d60","#6d7480"] : ["#4d8fd1","#8dbbe6","#cfe0ee","#eef1ee"];
+  g.addColorStop(0,stops[0]); g.addColorStop(.45,stops[1]); g.addColorStop(.8,stops[2]); g.addColorStop(1,stops[3]); x.fillStyle=g; x.fillRect(0,0,4,256);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; scene.background=t;
+  shared.uFog.value.set(dark?"#55606c":"#d5e2ec").convertSRGBToLinear();
+}
+function pickTerrain(r){
+  const o=r.origin, d=r.direction, hw=WM/U/2, hh=HM/U/2;
+  const hAt=(x,z)=> (Math.abs(x)>hw||Math.abs(z)>hh) ? -1e9 : elevAt(W+(x/(2*hw)+.5)*(E-W), N-(z/(2*hh)+.5)*(N-S))*st.exag/U;
+  let prev=0; for(let s=2;s<40000;s+=4){ const x=o.x+d.x*s, y=o.y+d.y*s, z=o.z+d.z*s;
+    if (y<=hAt(x,z)){ let a=prev,b=s; for(let n=0;n<12;n++){ const m=(a+b)/2; (o.y+d.y*m<=hAt(o.x+d.x*m,o.z+d.z*m)) ? b=m : a=m; } return new THREE.Vector3(o.x+d.x*b,o.y+d.y*b,o.z+d.z*b); }
+    if (y<-50) return null; prev=s; }
+  return null;
+}
+
+// sprites
+function spriteFrom(drawFn, w, h, scale){
+  const c=mkCanvas(w*3,h*3), x=c.getContext("2d"); x.scale(3,3); drawFn(x);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=4;
+  const m=new THREE.SpriteMaterial({map:t, depthTest:false, sizeAttenuation:false});
+  const s=new THREE.Sprite(m); s.renderOrder=10; s.scale.set(scale*w/h, scale, 1); s.center.set(0.5,0); return s;
+}
+const INST = [
+  {k:"conaf",n:"CONAF",a:"CNF",c:"#2e7d32"},
+  {k:"bomberos",n:"Bomberos",a:"BOM",c:"#c62828"},
+  {k:"municipio",n:"Municipio",a:"MUN",c:"#1565c0"},
+  {k:"carabineros",n:"Carabineros",a:"CAR",c:"#33691e"},
+  {k:"ffaa",n:"FF.AA.",a:"FFAA",c:"#6d5a2c"},
+  {k:"forestal",n:"Forestal privada",a:"FOR",c:"#6a1b9a"},
+  {k:"senapred",n:"SENAPRED",a:"SNP",c:"#e65100"},
+  {k:"otro",n:"Otra",a:"OTR",c:"#546e7a"},
+];
+const instOf = k => INST.find(x=>x.k===k) || INST[INST.length-1];
+const TIPOS = ["Brigada terrestre","Carro bomba","Camión aljibe","Camioneta de patrullaje","Motoniveladora","Bulldozer","Retroexcavadora","Helicóptero","Avión cisterna","Ambulancia","Punto de agua","Puesto de mando"];
+const ESTADOS = [{k:"disponible",n:"Disponible"},{k:"ruta",n:"En ruta"},{k:"combate",n:"En combate"},{k:"descanso",n:"En descanso"},{k:"fuera",n:"Fuera de servicio"}];
+const estadoOf = k => ESTADOS.find(e=>e.k===k)||ESTADOS[0];
+const STC = {disponible:"#2f9e5a",ruta:"#2b7fc0",combate:"#f0773a",descanso:"#8a958f",fuera:"#d93025"};
+
+// ---------- Miniaturas por tipo de recurso (vector, caja de 56×36) ----------
+const OL="#16201d", GL="#bfe3f5", MET="#56636a", PALE="#eef2f3", BLU="#2b8fd6";
+function iP(x,fill,pts,close){ x.beginPath(); pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); if(close!==false) x.closePath(); if(fill){ x.fillStyle=fill; x.fill(); } x.stroke(); }
+function iR(x,fill,a,b,w,h,r){ x.beginPath(); if(x.roundRect) x.roundRect(a,b,w,h,r==null?2:r); else x.rect(a,b,w,h); if(fill){ x.fillStyle=fill; x.fill(); } x.stroke(); }
+function iC(x,fill,cx,cy,r){ x.beginPath(); x.arc(cx,cy,r,0,7); if(fill){ x.fillStyle=fill; x.fill(); } x.stroke(); }
+function iW(x,cx,cy,r){ iC(x,"#20272a",cx,cy,r); x.beginPath(); x.arc(cx,cy,r*.42,0,7); x.fillStyle="#cfd6d9"; x.fill(); }
+function iL(x,a,b,c,d,w,col){ x.save(); x.lineWidth=w||1.2; x.strokeStyle=col||OL; x.beginPath(); x.moveTo(a,b); x.lineTo(c,d); x.stroke(); x.restore(); }
+function iShade(x,pts){ x.save(); x.beginPath(); pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])); x.closePath(); x.fillStyle="rgba(0,0,0,.28)"; x.fill(); x.restore(); }
+function iPerson(x,cx,base,s,c){
+  iR(x,"#3a4447",cx-3.8*s,base-9*s,3.3*s,9*s,1); iR(x,"#3a4447",cx+.5*s,base-9*s,3.3*s,9*s,1);
+  iR(x,c,cx-4.6*s,base-19*s,9.2*s,11*s,2.2*s);
+  iC(x,"#f0c9a0",cx,base-22.5*s,3.3*s);
+  x.beginPath(); x.arc(cx,base-23*s,3.9*s,Math.PI,0); x.lineTo(cx+5*s,base-23*s); x.lineTo(cx-5*s,base-23*s); x.closePath(); x.fillStyle="#f6c22d"; x.fill(); x.stroke();
+}
+const ICONS = {
+  "Camión aljibe":(x,c)=>{
+    iR(x,"#3a4447",6,24,44,3,1); iR(x,"#9aa7ad",17,7.5,8,3.5,1);
+    iR(x,PALE,4.5,10,31.5,15,7.5);
+    x.beginPath(); x.moveTo(20,12.2); x.bezierCurveTo(20,12.2,15.6,17.6,15.6,19.8); x.bezierCurveTo(15.6,23.6,24.4,23.6,24.4,19.8); x.bezierCurveTo(24.4,17.6,20,12.2,20,12.2); x.fillStyle=BLU; x.fill(); x.stroke();
+    iP(x,c,[[37.5,25],[37.5,13],[45,13],[51.5,19.5],[51.5,25]]); iP(x,GL,[[40,15],[44.3,15],[48.6,19.6],[40,19.6]]);
+    iW(x,12.5,28.5,4.5); iW(x,23,28.5,4.5); iW(x,44.5,28.5,4.5);
+  },
+  "Carro bomba":(x,c)=>{
+    iL(x,6,8.5,36,8.5,1.3,MET); iL(x,6,11.5,36,11.5,1.3,MET); for(let k=8;k<=34;k+=4.3) iL(x,k,8.5,k,11.5,1.1,MET);
+    iR(x,c,4,13,34.5,13,2); x.fillStyle="#fff"; x.fillRect(4.8,21.2,33,2.4);
+    x.save(); x.strokeStyle="rgba(255,255,255,.8)"; x.lineWidth=1; iR(x,null,7.5,15,8,4.6,1); iR(x,null,18.5,15,8,4.6,1); x.restore(); iC(x,"#f3c03d",32,17.3,2.4);
+    iR(x,BLU,41.5,7.6,5,3.4,1); iP(x,c,[[38.5,26],[38.5,11],[47,11],[51.5,16.5],[51.5,26]]); iP(x,GL,[[41,13],[46.2,13],[49.3,17],[49.3,19],[41,19]]);
+    iW(x,13,28.5,4.5); iW(x,43.5,28.5,4.5);
+  },
+  "Brigada terrestre":(x,c)=>{
+    iPerson(x,13,32.5,.92,c); iPerson(x,43,32.5,.92,c);
+    iL(x,36.5,8,36.5,33,1.6,"#7a5a3a"); iP(x,MET,[[33.2,6],[39.8,6],[39.3,11.5],[36.5,13.4],[33.7,11.5]]);
+    iPerson(x,27,34,1.12,c);
+  },
+  "Camioneta de patrullaje":(x,c)=>{
+    iR(x,BLU,27.5,7.6,5,3.4,1);
+    iP(x,c,[[4,26.5],[4,18],[20,18],[24.5,11],[36,11],[40.5,18],[50,18.6],[52,21.5],[52,26.5]]);
+    iP(x,GL,[[25.8,13],[35,13],[38,18],[23,18]]); iL(x,30.4,13,30.4,18,1);
+    x.fillStyle="#f6d25a"; x.fillRect(49.6,20,2,2.2); iL(x,5,21.5,19.5,21.5,.8,"rgba(255,255,255,.65)");
+    iW(x,14,27.5,4.6); iW(x,42,27.5,4.6);
+  },
+  "Motoniveladora":(x,c)=>{
+    iL(x,8,15,8,9.5,2,MET);
+    iP(x,c,[[26,16.5],[49.5,20],[49.5,23.2],[26,22.5]]); iR(x,c,4,15,14.5,10.5,2);
+    iR(x,c,17,5.5,10.5,15,1.5); iR(x,GL,19,7.5,6.5,6.5,1);
+    iL(x,36,22,36.5,26,1.6,MET); iP(x,MET,[[29.5,26.2],[42.5,24],[43.5,29.2],[30.5,31.6]]);
+    iW(x,8.5,28.3,4.7); iW(x,18.5,28.3,4.7); iW(x,48,28.8,4.2);
+  },
+  "Bulldozer":(x,c)=>{
+    iL(x,31.5,16,31.5,9.5,2,MET);
+    iR(x,c,10,15.5,26.5,10,2); iR(x,c,13,5.5,13.5,11.5,1.5); iR(x,GL,15,7.5,9.5,6.5,1);
+    iR(x,"#2a3134",7,24.5,35,8.5,4.2); x.save(); x.lineWidth=.8; for(const k of [12.5,20,27.5,35.5]) iC(x,"#909ca1",k,28.8,2.1); x.restore();
+    iL(x,36,22,46,25.5,2.2,MET); iP(x,MET,[[46.2,12.5],[50,14.5],[51.5,31],[47.5,33],[45.3,30.5],[46.6,21.5]]);
+  },
+  "Retroexcavadora":(x,c)=>{
+    iP(x,c,[[18,16.5],[21.3,18.6],[11.6,6.6],[8.2,8]]); iP(x,c,[[7.8,5.6],[11.4,7.6],[7.4,22.3],[4,21.4]]); iP(x,MET,[[2.8,21],[8,22],[9.2,28],[4.4,29.2],[2,25.2]]);
+    iL(x,36,19.5,47,25.5,2.6,MET); iP(x,MET,[[45,21.8],[53.3,24],[51.2,31.2],[45,30]]);
+    iR(x,c,18,17,21,9.5,2); iR(x,c,20,5.5,12.5,12.5,1.5); iR(x,GL,22,7.5,8.5,7.5,1);
+    iW(x,23.5,27,6.2); iW(x,39.5,28.8,4.4);
+  },
+  "Helicóptero":(x,c)=>{
+    iL(x,5,6.8,45,6.8,2,OL); iL(x,25,7,25,11.5,1.8,OL);
+    iP(x,c,[[34,14.5],[52,11.6],[52.6,14.6],[36,22.5]]); iC(x,PALE,52,12,3.6);
+    x.beginPath(); x.ellipse(24,19,14,8,0,0,7); x.fillStyle=c; x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(23.5,11.6); x.bezierCurveTo(15,11.6,10.6,15.5,10.2,19.4); x.lineTo(23.5,19.4); x.closePath(); x.fillStyle=GL; x.fill(); x.stroke();
+    iL(x,18,26.6,17,31,1.2); iL(x,30,26.6,31,31,1.2); iL(x,12.5,31.2,36.5,31.2,1.9,OL);
+  },
+  "Avión cisterna":(x,c)=>{
+    iP(x,c,[[5,16.5],[3.4,5],[9.5,5],[16,16]]);
+    x.beginPath(); x.moveTo(4,16.5); x.lineTo(40,14); x.quadraticCurveTo(51.5,14.6,52,19); x.quadraticCurveTo(50.5,24,40,24); x.lineTo(9,21.5); x.closePath(); x.fillStyle=c; x.fill(); x.stroke();
+    iP(x,GL,[[41,15.6],[46,15.8],[49.6,18.6],[41,18.6]]);
+    const wing=[[21,19.5],[34,19.5],[28.5,31],[21.5,31]]; iP(x,c,wing); iShade(x,wing); iP(x,null,wing);
+    iL(x,53,10.5,53,27.5,1.7,OL);
+    x.save(); x.fillStyle=BLU; for(const [a,b] of [[11,27],[14.5,30.5],[8,31.5]]){ x.beginPath(); x.arc(a,b,1.35,0,7); x.fill(); } x.restore();
+  },
+  "Ambulancia":(x,c)=>{
+    iR(x,BLU,20,6.6,5,3.6,1);
+    iP(x,"#f6f8f9",[[4,27],[4,10],[36,10],[42.5,17.5],[50,19],[52,22],[52,27]]);
+    x.fillStyle=c; x.fillRect(4.7,21.6,46.6,2.8);
+    iP(x,GL,[[30,12],[35.3,12],[40,17.6],[30,17.6]]);
+    x.fillStyle="#d93025"; x.fillRect(13.6,11.8,3.2,8.4); x.fillRect(11,14.4,8.4,3.2);
+    iW(x,14,28.2,4.6); iW(x,42,28.2,4.6);
+  },
+  "Punto de agua":(x,c)=>{
+    x.beginPath(); x.moveTo(28,2.5); x.bezierCurveTo(28,2.5,16.5,15.5,16.5,21.5); x.bezierCurveTo(16.5,30.5,39.5,30.5,39.5,21.5); x.bezierCurveTo(39.5,15.5,28,2.5,28,2.5); x.fillStyle=BLU; x.fill(); x.stroke();
+    x.save(); x.strokeStyle="rgba(255,255,255,.85)"; x.lineWidth=1.7; x.lineCap="round"; x.beginPath(); x.arc(27.5,21,7,2.2,3.5); x.stroke(); x.restore();
+    x.save(); x.strokeStyle=BLU; x.lineWidth=1.6; x.lineCap="round"; for(const a of [4,41]){ x.beginPath(); x.moveTo(a,31.5); x.quadraticCurveTo(a+2.75,28.6,a+5.5,31.5); x.quadraticCurveTo(a+8.25,34.4,a+11,31.5); x.stroke(); } x.restore();
+  },
+  "Puesto de mando":(x,c)=>{
+    iL(x,42,12,42,2,1.5,OL); iP(x,c,[[42,2],[52.5,4.8],[42,7.8]]);
+    iP(x,PALE,[[18,12],[42,12],[52,32.5],[30,32.5]]); iP(x,c,[[5.5,32.5],[18,12],[30,32.5]]);
+    iP(x,"#2a3134",[[14,32.5],[18,22],[22,32.5]]);
+  },
+};
+function drawIcon(x,tipo,c){
+  x.save(); x.lineWidth=1.15; x.lineJoin="round"; x.lineCap="round"; x.strokeStyle=OL;
+  const f=ICONS[tipo]; if(f) f(x,c); else { iC(x,c,28,18,11); x.fillStyle="#fff"; x.font="700 14px sans-serif"; x.textAlign="center"; x.fillText("?",28,23); }
+  x.restore();
+}
+function drawPin(x,r,selected,pointer){
+  const ins=instOf(r.inst), rr=(a,b,w,h,q)=>{ x.beginPath(); if(x.roundRect) x.roundRect(a,b,w,h,q); else x.rect(a,b,w,h); };
+  if (pointer){ x.fillStyle="rgba(0,0,0,.35)"; x.beginPath(); x.ellipse(32,71.5,7,2.3,0,0,7); x.fill();
+    x.beginPath(); x.moveTo(24,56); x.lineTo(40,56); x.lineTo(32,70.5); x.closePath(); x.fillStyle=ins.c; x.fill(); }
+  if (selected){ rr(1,1,62,58,9); x.fillStyle="#fff"; x.fill(); }
+  rr(3,3,58,54,7); x.fillStyle=ins.c; x.fill();
+  x.save(); rr(5.5,5.5,53,49,5); x.clip(); x.fillStyle="#fbfcfb"; x.fillRect(0,0,64,43.5); x.restore();
+  x.save(); x.translate(4,6); drawIcon(x,r.tipo,ins.c); x.restore();
+  x.fillStyle="#fff"; x.font="600 10px 'IBM Plex Mono',ui-monospace,monospace"; x.textAlign="center"; x.fillText(ins.a,32,53);
+  if (pointer){ x.beginPath(); x.arc(56.5,7.5,6.2,0,7); x.fillStyle=STC[r.estado]||"#999"; x.fill(); x.strokeStyle="#fff"; x.lineWidth=2; x.stroke(); }
+}
+const pinCache=new Map(), icoCache=new Map();
+function pinSprite(r, selected){
+  const key=[r.inst,r.tipo,r.estado,selected?1:0].join("|"); let m=pinCache.get(key);
+  if (!m){ const c=mkCanvas(256,296), x=c.getContext("2d"); x.scale(4,4); drawPin(x,r,selected,true);
+    const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=4; m=new THREE.SpriteMaterial({map:t, depthTest:false, sizeAttenuation:false}); pinCache.set(key,m); }
+  const s=new THREE.Sprite(m), k=(selected?.09:.078)*(NARROW?1.3:1); s.renderOrder=selected?11:10; s.scale.set(k*64/74,k,1); s.center.set(.5,0); return s;
+}
+function iconURL(inst,tipo){
+  const key=inst+"|"+tipo; let u=icoCache.get(key);
+  if (!u){ const c=mkCanvas(192,180), x=c.getContext("2d"); x.scale(3,3); drawPin(x,{inst,tipo},false,false); u=c.toDataURL("image/png"); icoCache.set(key,u); }
+  return u;
+}
+// etiquetas como texto HTML: siempre nítidas
+const labelLayer = $("labels"), labels = [], POIC = {Escuela:"rgba(21,101,192,.92)",Liceo:"rgba(21,101,192,.92)",Salud:"rgba(183,28,28,.92)",Bomberos:"rgba(198,40,40,.92)",Carabineros:"rgba(51,105,30,.92)",Municipio:"rgba(84,110,122,.95)"};
+function addLabel(text, cls, lon, lat, prio, extra){
+  const el=document.createElement("div"); el.className="lb "+cls; const s=document.createElement("span"); s.textContent=text; if(extra&&extra.bg) s.style.background=extra.bg; el.append(s, document.createElement("i")); labelLayer.appendChild(el);
+  labels.push(Object.assign({el,lon,lat,prio,pos:new THREE.Vector3(),w:0,h:0,shown:false}, extra||{}));
+}
+function makeLabels(){
+  for (const l of LOCS){ const town=l.kind===1||l.kind===2; addLabel(l.n, (town?"town":"ham")+(l.inC?"":" out"), l.lon, l.lat, town?1e6+(l.pop||0):l.kind===3?5:100+(l.pop||0)+(l.inC?500:0), {loc:l}); }
+  for (const [c,n,lon,lat] of DATA.poi) addLabel(n.length>34?n.slice(0,33)+"…":n, "poi", lon, lat, 60, {poi:true,bg:POIC[c]});
+  labels.sort((a,b)=>b.prio-a.prio); measureLabels();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureLabels);
+}
+function measureLabels(){ for (const L of labels){ L.w=L.el.offsetWidth; L.h=L.el.offsetHeight; } }
+const _v = new THREE.Vector3();
+function layoutLabels(){
+  const w=view.clientWidth, h=view.clientHeight, cp=camera.position, placed=[];
+  for (const L of labels){
+    let show; const d=cp.distanceTo(L.pos);
+    if (L.poi) show = st.layers.poi && d<1100;
+    else { const l=L.loc, pop=l.pop||0; show = st.layers.town && (l.kind===1||l.kind===2 ? true : l.kind===3 ? d<450 : (d<1300 || (d<2800&&pop>=100) || (d<5200&&pop>=200&&l.inC))); }
+    let x=0,y=0;
+    if (show){ _v.copy(L.pos).project(camera); if (_v.z>1||_v.z<-1||Math.abs(_v.x)>1.05||Math.abs(_v.y)>1.05) show=false; else { x=Math.round((_v.x+1)/2*w-L.w/2); y=Math.round((1-_v.y)/2*h-L.h+4); } }
+    if (show){ const x2=x+L.w, y2=y+L.h; for (const r of placed){ if (x<r[2]+3 && x2>r[0]-3 && y<r[3]+1 && y2>r[1]-1){ show=false; break; } } if (show) placed.push([x,y,x2,y2]); }
+    if (show) L.el.style.transform=`translate3d(${x}px,${y}px,0)`;
+    if (L.shown!==show){ L.el.style.visibility=show?"visible":"hidden"; L.shown=show; }
+  }
+}
+function flameSprite(){
+  return spriteFrom(x=>{
+    x.fillStyle="#b42318"; x.beginPath(); x.moveTo(24,46); x.bezierCurveTo(6,40,6,22,16,12); x.bezierCurveTo(16,22,22,22,22,16); x.bezierCurveTo(22,8,28,4,30,0); x.bezierCurveTo(32,10,44,18,40,34); x.bezierCurveTo(38,42,32,46,24,46); x.fill();
+    x.strokeStyle="#fff"; x.lineWidth=2; x.stroke();
+    x.fillStyle="#ffd36b"; x.beginPath(); x.moveTo(24,42); x.bezierCurveTo(16,38,16,30,22,24); x.bezierCurveTo(24,30,30,30,30,26); x.bezierCurveTo(34,32,32,40,24,42); x.fill();
+  }, 48, 48, 0.06);
+}
+const resGroup = new THREE.Group(); scene.add(resGroup);
+let ignSprite = null;
+function placeStatic(){
+  if (!labels.length) makeLabels();
+  for (const L of labels) L.pos.copy(toWorld(L.lon, L.lat, 8));
+  if (!ignSprite){ ignSprite=flameSprite(); scene.add(ignSprite); }
+  ignSprite.position.copy(toWorld(st.ign.lon, st.ign.lat, 10));
+}
+
+// ---------- Recursos (compartidos) ----------
+let resources = [];      // {id, inst, tipo, nombre, estado, dotacion, contacto, lon, lat, updatedAt, updatedBy}
+let demoRes = [];        // ejemplos solo en esta vista
+let selectedId = null, filter = new Set(INST.map(i=>i.k));
+let db = null, user = null, myId = null, canWrite = true, localMode = false;
+const allRes = () => resources.concat(demoRes);
+
+function updateResources3D(){
+  resGroup.clear();
+  for (const r of allRes()){
+    if (!filter.has(r.inst)) continue;
+    const s = pinSprite(r, r.id===selectedId); s.position.copy(toWorld(r.lon,r.lat,8)); s.userData.id=r.id; resGroup.add(s);
+  }
+  resGroup.visible = st.layers.res;
+}
+function riskOf(r){
+  if (!arrival) return null;
+  const [i,j]=lonlatToCell(r.lon,r.lat); if(i<0||j<0||i>=NX||j>=NY) return null;
+  let m=Infinity; for(let dj=-2;dj<=2;dj++)for(let di=-2;di<=2;di++){const ni=i+di,nj=j+dj; if(ni>=0&&nj>=0&&ni<NX&&nj<NY) m=Math.min(m,arrival[nj*NX+ni]);}
+  return m/60;
+}
+const ago = ts => { if(!ts) return ""; const m=Math.round((Date.now()-ts)/60000); return m<1?"recién":m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:`hace ${Math.round(m/1440)} d`; };
+let names = {};
+async function resolveNames(ids){
+  if (!user || !user.profiles) return; const need = ids.filter(i=>i && !(i in names)); if(!need.length) return;
+  try { const ps = await user.profiles(need); for (const id of need) names[id] = (ps[id] && ps[id].name) || ""; renderResList(); renderLog(); } catch(e){}
+}
+function renderResList(){
+  const list = $("resList"); list.textContent="";
+  const items = allRes().filter(r=>filter.has(r.inst)).sort((a,b)=>a.inst.localeCompare(b.inst)||String(a.nombre).localeCompare(String(b.nombre)));
+  $("resCount").textContent = `Recursos (${items.length})`;
+  if (!allRes().length){
+    const e=document.createElement("div"); e.className="empty";
+    e.innerHTML = "Aún no hay brigadas ni máquinas registradas. Usa <b>Agregar recurso en el mapa</b> para ubicar la primera, o <b>Ver ejemplos</b> para mirar cómo se ve (los ejemplos no se guardan).";
+    list.appendChild(e); return;
+  }
+  for (const r of items){
+    const ins=instOf(r.inst), b=document.createElement("button"); b.type="button"; b.className="res"+(r.id===selectedId?" sel":"");
+    const risk=riskOf(r); const riskTxt = risk!==null && isFinite(risk) && risk<=st.H ? `<div class="risk">Fuego llega en ${fmtH(risk)}</div>` : "";
+    const who = r.demo ? "ejemplo, no guardado" : [ago(r.updatedAt), names[r.updatedBy]].filter(Boolean).join(" · ");
+    b.innerHTML = `<img class="ico" alt="" width="48" height="45" src="${iconURL(r.inst,r.tipo)}"><div style="min-width:0"><div class="nm"></div><div class="sub"></div>${riskTxt}</div><span class="st st-${r.estado}">${estadoOf(r.estado).n}</span>`;
+    b.querySelector(".nm").textContent = r.nombre || r.tipo;
+    b.querySelector(".sub").textContent = `${ins.n} · ${r.tipo}${r.dotacion? " · "+r.dotacion:""}${who? " · "+who:""}`;
+    b.onclick = ()=>{ selectedId = r.id; showForm(r); updateResources3D(); renderResList(); flyTo(r.lon,r.lat); };
+    list.appendChild(b);
+  }
+  resolveNames([...new Set(resources.map(r=>r.updatedBy))]);
+}
+function renderFilters(){
+  const f=$("filters"); f.textContent="";
+  for (const i of INST){ const b=document.createElement("button"); b.type="button"; b.textContent=i.n; b.style.borderColor=i.c; b.setAttribute("aria-pressed", filter.has(i.k));
+    b.onclick=()=>{ filter.has(i.k)?filter.delete(i.k):filter.add(i.k); renderFilters(); renderResList(); updateResources3D(); }; f.appendChild(b); }
+}
+function showForm(r, isNew){
+  const box=$("resForm"); box.textContent="";
+  if (!r) return;
+  const f=document.createElement("form"); f.className="card";
+  const ro = (!r.demo && !canWrite);
+  f.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px"><img class="icoPrev" id="fIco" alt=""><div><div style="font-family:var(--f-display);font-weight:600;font-size:15px">${isNew?"Nuevo recurso":"Recurso"}</div><div class="note">Así se verá en el mapa.</div></div></div>
+    <div class="two"><label>Institución<select id="fInst">${INST.map(i=>`<option value="${i.k}">${i.n}</option>`).join("")}</select></label>
+    <label>Estado<select id="fEst">${ESTADOS.map(e=>`<option value="${e.k}">${e.n}</option>`).join("")}</select></label></div>
+    <label>Tipo<select id="fTipo">${TIPOS.map(t=>`<option>${t}</option>`).join("")}</select></label>
+    <label>Nombre, patente o indicativo<input id="fNom" maxlength="60" placeholder="Ej.: B-1 Bomberos Lumaco"></label>
+    <div class="two"><label>Dotación / capacidad<input id="fDot" maxlength="40" placeholder="Ej.: 7 brigadistas"></label>
+    <label>Contacto o canal<input id="fCon" maxlength="40" placeholder="Ej.: Canal 3 / +56 9…"></label></div>
+    <div class="note" id="fPos"></div>
+    <div class="btns">${ro?"":`<button class="btn primary" type="submit">${isNew?"Guardar":"Guardar cambios"}</button>`}
+      ${isNew||ro?"":`<button class="btn" type="button" id="fMove">Mover en el mapa</button>`}
+      <button class="btn" type="button" id="fClose">Cerrar</button>
+      ${isNew||ro?"":`<button class="btn danger" type="button" id="fDel">Eliminar</button>`}</div>
+    <div id="fConfirm"></div>`;
+  box.appendChild(f);
+  f.querySelector("#fInst").value=r.inst||"conaf"; f.querySelector("#fEst").value=r.estado||"disponible";
+  f.querySelector("#fTipo").value=r.tipo||TIPOS[0]; f.querySelector("#fNom").value=r.nombre||"";
+  f.querySelector("#fDot").value=r.dotacion||""; f.querySelector("#fCon").value=r.contacto||"";
+  { const up=()=>{ f.querySelector("#fIco").src=iconURL(f.querySelector("#fInst").value, f.querySelector("#fTipo").value); }; up(); f.querySelector("#fInst").onchange=up; f.querySelector("#fTipo").onchange=up; }
+  f.querySelector("#fPos").textContent = `Posición: ${r.lat.toFixed(5)}, ${r.lon.toFixed(5)} · ${Math.round(elevAt(r.lon,r.lat))} m s. n. m.` + (ro?" · Solo lectura con tu nivel de acceso.":"");
+  if (ro) f.querySelectorAll("input,select").forEach(e=>e.disabled=true);
+  f.onsubmit = async ev => { ev.preventDefault();
+    const upd = {inst:f.fInst.value, estado:f.fEst.value, tipo:f.fTipo.value, nombre:f.fNom.value.trim(), dotacion:f.fDot.value.trim(), contacto:f.fCon.value.trim(), lon:r.lon, lat:r.lat};
+    await saveRes(r, upd); showForm(null); selectedId=null; updateResources3D(); renderResList(); };
+  f.querySelector("#fClose").onclick = ()=>{ showForm(null); selectedId=null; setMode(null); updateResources3D(); renderResList(); };
+  const mv=f.querySelector("#fMove"); if(mv) mv.onclick=()=>setMode("move");
+  const dl=f.querySelector("#fDel"); if(dl) dl.onclick=()=>{ const c=f.querySelector("#fConfirm"); c.innerHTML=`<div class="confirm">¿Eliminar este recurso para todos? <button class="btn danger" type="button" id="fYes">Sí, eliminar</button><button class="btn" type="button" id="fNo">No</button></div>`;
+    c.querySelector("#fNo").onclick=()=>c.textContent=""; c.querySelector("#fYes").onclick=async()=>{ await delRes(r); showForm(null); selectedId=null; updateResources3D(); renderResList(); }; };
+  // ensure tab visible
+  selectTab("res");
+}
+const LS_KEY="lumaco-recursos-local";
+function lsSave(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(resources)); }catch(e){} }
+async function saveRes(r, upd){
+  upd.updatedAt = Date.now(); upd.updatedBy = myId || null;
+  if (r.demo){ Object.assign(r, upd); return; }
+  const nm=upd.nombre||upd.tipo, insN=instOf(upd.inst).n, isNew=!!r._new||!r.id;
+  const msg = isNew ? `Nuevo recurso: ${nm} (${insN}, ${upd.tipo}), ${estadoOf(upd.estado).n.toLowerCase()}` : r.estado!==upd.estado ? `${nm} (${insN}) pasa a ${estadoOf(upd.estado).n.toLowerCase()}` : (r.lon!==upd.lon||r.lat!==upd.lat) ? `${nm} (${insN}) cambia de posición` : `${nm} (${insN}): datos actualizados`;
+  if (db && !localMode){
+    try{
+      if (r.id && !r._new) await db.doc("recursos/"+r.id).set(upd);
+      else await db.collection("recursos").add(upd);
+      logEvent("recurso", msg);
+    }catch(e){ resNote(e && e.code==="invalid_argument" ? "Tu nivel de acceso no permite modificar recursos. Pide acceso de colaborador al administrador." : "No se pudo guardar. Revisa la conexión e inténtalo de nuevo."); if(e&&e.code==="invalid_argument"){canWrite=false;} }
+  } else {
+    if (r._new){ r.id = "l"+Date.now(); delete r._new; Object.assign(r,upd); resources.push(r); } else Object.assign(r, upd);
+    lsSave(); logEvent("recurso", msg);
+  }
+}
+async function delRes(r){
+  if (r.demo){ demoRes = demoRes.filter(x=>x!==r); return; }
+  if (db && !localMode){ try{ await db.doc("recursos/"+r.id).delete(); logEvent("recurso", `Recurso eliminado: ${r.nombre||r.tipo} (${instOf(r.inst).n})`); }catch(e){ resNote("No se pudo eliminar."); } }
+  else { resources = resources.filter(x=>x!==r); lsSave(); logEvent("recurso", `Recurso eliminado: ${r.nombre||r.tipo} (${instOf(r.inst).n})`); }
+}
+function resNote(t){ $("resNote").textContent = t; }
+
+function loadDemo(){
+  if (demoRes.length){ demoRes=[]; $("btnDemo").textContent="Ver ejemplos"; updateResources3D(); renderResList(); return; }
+  const D = [
+    ["conaf","Brigada terrestre","Brigada de ejemplo A","combate","7 brigadistas",-72.948,-38.196],
+    ["bomberos","Carro bomba","Carro de ejemplo B","ruta","4.000 L",-72.912,-38.170],
+    ["municipio","Camión aljibe","Aljibe de ejemplo C","disponible","10.000 L",-72.900,-38.162],
+    ["municipio","Motoniveladora","Motoniveladora de ejemplo","disponible","",-72.935,-38.183],
+    ["forestal","Bulldozer","Bulldozer de ejemplo","combate","",-72.972,-38.192],
+    ["carabineros","Camioneta de patrullaje","Patrulla de ejemplo","ruta","2 funcionarios",-72.995,-38.198],
+    ["ffaa","Brigada terrestre","Brigada FF.AA. de ejemplo","descanso","20 efectivos",-72.905,-38.158],
+    ["conaf","Puesto de mando","PMU de ejemplo","disponible","",-72.918,-38.176],
+  ];
+  demoRes = D.map((d,k)=>({id:"demo"+k,demo:true,inst:d[0],tipo:d[1],nombre:d[2],estado:d[3],dotacion:d[4],lon:d[5],lat:d[6]}));
+  $("btnDemo").textContent="Ocultar ejemplos"; updateResources3D(); renderResList();
+}
+
+// ---------- Escenario compartido ----------
+let scnRemote = null, scnLoadedAt = 0;
+function scnPayload(){ return {lon:st.ign.lon,lat:st.ign.lat,T:st.T,RH:st.RH,WS:st.WS,WD:st.WD,H:st.H,nino:st.nino,wx:st.wx,start:st.start,dirTo:st.dirTo,roadBrake:st.roadBrake,worst:!!st.worst,perim:st.perim?st.perim.flat():null,breaks:st.breaks.map(b=>({a:b[0],b:b[1],c:b[2],d:b[3]})),updatedAt:Date.now(),updatedBy:myId||null}; }
+function applyScn(s){
+  st.ign={lon:s.lon,lat:s.lat}; st.ignDemo=false; st.T=s.T; st.RH=s.RH; st.WS=s.WS; st.WD=s.WD; st.H=s.H; st.nino=!!s.nino; st.dirTo=typeof s.dirTo==="number"?s.dirTo:null; st.roadBrake=s.roadBrake!==false; st.worst=!!s.worst;
+  { const f=Array.isArray(s.perim)?s.perim:null, poly=[]; if(f) for(let n=0;n+1<f.length;n+=2) poly.push([+f[n],+f[n+1]]); const keep=st.ign; setPerim(poly.length>=3?poly:null); if(!st.perim) st.ign=keep; } st.wxTouched=true; if (s.wx==="auto" && WX && typeof s.start==="number"){ st.wx="auto"; pickStart(s.start); } else st.wx="manual"; setWxMode(st.wx);
+  st.breaks=(s.breaks||[]).map(b=>[b.a,b.b,b.c,b.d]); st.t=st.H; scnLoadedAt=s.updatedAt||Date.now();
+  rebuildBlocks(); syncInputs(); placeStatic(); recompose(); runSim();
+}
+async function shareScn(){
+  if (!db || localMode){ $("scnInfo").textContent="Compartir requiere abrir esta página en claude.ai con sesión iniciada."; return; }
+  const p=scnPayload();
+  try{ await db.doc("escenario/actual").set(p); scnLoadedAt=p.updatedAt; $("scnInfo").textContent="Escenario compartido. Las demás instituciones verán un aviso para cargarlo.";
+    logEvent("escenario", `Escenario compartido: ${st.perim?"perímetro de "+Math.round(st.perimCells.length*DX*DY/10000)+" ha":"foco en "+st.ign.lat.toFixed(4)+", "+st.ign.lon.toFixed(4)}, proyección de ${st.H} h`+(simInfo.headDir!=null?`, avanza hacia ${dirFull(simInfo.headDir)}`:"")); }
+  catch(e){ $("scnInfo").textContent = e&&e.code==="invalid_argument" ? "Tu nivel de acceso no permite compartir escenarios." : "No se pudo compartir. Inténtalo de nuevo."; }
+}
+
+// ---------- Interacción ----------
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+function pick(ev){
+  const r=renderer.domElement.getBoundingClientRect(); mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(mouse,camera);
+  const rh = ray.intersectObjects(resGroup.children,false); if (rh.length && st.layers.res) return {res:rh[0].object.userData.id};
+  const p=pickTerrain(ray.ray); if(!p) return null;
+  return {lon: W+(p.x*U/WM+.5)*(E-W), lat: N-(p.z*U/HM+.5)*(N-S)};
+}
+function setMode(m){
+  st.mode=m; st.breakStart=null;
+  const msg={ignite:"Toca el mapa donde comienza el incendio",add:"Toca el mapa donde está el recurso",move:"Toca la nueva posición del recurso",break:"Toca el inicio del cortafuego",perim:"Toca los vértices del perímetro del incendio"}[m];
+  if (st.draft && m!=="perim"){ st.draft=null; recompose(); }
+  if (m==="perim"){ st.draft=[]; } $("hintDone").hidden=true; $("btnPerim").classList.toggle("active",m==="perim");
+  $("hint").hidden=!m; if(m) $("hintTxt").textContent=msg;
+  $("btnIgnite").classList.toggle("active",m==="ignite"); $("btnAddRes").classList.toggle("active",m==="add"); $("btnBreak").classList.toggle("active",m==="break");
+  $("mapIgnite").classList.toggle("active",m==="ignite"); $("mapAdd").classList.toggle("active",m==="add"); $("mapBreak").classList.toggle("active",m==="break");
+}
+function rebuildBlocks(){
+  BURN_BLOCK.fill(0);
+  for (const b of st.breaks){
+    const [i1,j1]=lonlatToCell(b[0],b[1]), [i2,j2]=lonlatToCell(b[2],b[3]); const n=Math.max(Math.abs(i2-i1),Math.abs(j2-j1))*2+1;
+    for(let k=0;k<=n;k++){ const i=Math.round(i1+(i2-i1)*k/n), j=Math.round(j1+(j2-j1)*k/n);
+      for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){ const ni=i+di,nj=j+dj; if(ni>=0&&nj>=0&&ni<NX&&nj<NY) BURN_BLOCK[nj*NX+ni]=1; } }
+  }
+  $("btnClearBreaks").hidden = !st.breaks.length;
+}
+function onClick(ev){
+  const p = pick(ev); if (!p) return;
+  if (p.res && !st.mode){ const r=allRes().find(x=>x.id===p.res); if(r){ selectedId=r.id; showForm(r); updateResources3D(); renderResList(); } return; }
+  if (p.res) return;
+  if (st.mode==="perim"){ st.draft.push([p.lon,p.lat]); $("hintDone").hidden=st.draft.length<3; $("hintTxt").textContent = st.draft.length<3 ? `Perímetro: ${st.draft.length} de al menos 3 puntos` : `Perímetro: ${st.draft.length} puntos`; recompose(); }
+  else if (st.mode==="ignite"){ st.ign={lon:p.lon,lat:p.lat}; st.ignDemo=false; setPerim(null); recompose(); setMode(null); placeStatic(); st.t=Math.min(3,st.H); syncInputs(); runSim(); }
+  else if (st.mode==="add"){ setMode(null); const r={_new:true,inst:"conaf",tipo:TIPOS[0],estado:"disponible",lon:p.lon,lat:p.lat}; selectedId=null; showForm(r,true); }
+  else if (st.mode==="move"){ const r=allRes().find(x=>x.id===selectedId); setMode(null); if(r){ const upd={...r,lon:p.lon,lat:p.lat}; delete upd.id; delete upd.demo; saveRes(r,upd).then(()=>{ if(r.demo){r.lon=p.lon;r.lat=p.lat;} showForm(allRes().find(x=>x.id===selectedId)||null); updateResources3D(); renderResList(); }); } }
+  else if (st.mode==="break"){
+    if (!st.breakStart){ st.breakStart=[p.lon,p.lat]; $("hintTxt").textContent="Toca el final del cortafuego"; }
+    else { st.breaks.push([st.breakStart[0],st.breakStart[1],p.lon,p.lat]); setMode(null); rebuildBlocks(); recompose(); runSim(); }
+  }
+}
+let downAt=null;
+renderer.domElement.addEventListener("pointerdown",e=>{downAt=[e.clientX,e.clientY];});
+renderer.domElement.addEventListener("pointerup",e=>{ if(downAt && Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])<6) onClick(e); downAt=null; });
+
+function flyTo(lon,lat,dist){ const p=toWorld(lon,lat); const d=camera.position.clone().sub(controls.target); controls.target.copy(p); camera.position.copy(p).add(d.setLength(Math.min(d.length(),dist||1600))); }
+
+// ---------- Controles UI ----------
+function buildDayOptions(){
+  const sel=$("inDay"); sel.textContent=""; if(!WX) return;
+  const seen=new Set(); for (let eh=WX.first; eh<=WX.last-1; eh++){ const d=new Date(eh*3600e3), key=fmtKey.format(d); if(seen.has(key)) continue; seen.add(key);
+    const o=document.createElement("option"); o.value=key; o.textContent=fmtDay.format(d); sel.appendChild(o); }
+}
+function buildHourOptions(){
+  const sel=$("inHour"), key=$("inDay").value; sel.textContent=""; if(!WX) return;
+  for (let eh=WX.first; eh<=WX.last-1; eh++){ if (fmtKey.format(new Date(eh*3600e3))!==key) continue;
+    const o=document.createElement("option"); o.value=eh; o.textContent=String(hourOf(eh)).padStart(2,"0")+":00"; sel.appendChild(o); }
+}
+function pickStart(eh){
+  eh=Math.max(WX.first, Math.min(WX.last-1, eh)); st.start=eh;
+  $("inDay").value=fmtKey.format(new Date(eh*3600e3)); buildHourOptions(); $("inHour").value=String(eh);
+}
+function defaultStart(){   // próximas 15:00 h de Chile, la hora de mayor peligro habitual
+  const now=Math.floor(Date.now()/3600e3); let eh=Math.max(WX.first, Math.min(WX.last-1, now));
+  for (let k=0;k<30 && eh+k<WX.last-1;k++) if (hourOf(eh+k)===15) return eh+k; return eh;
+}
+function setWxMode(m){
+  if (m==="auto" && !WX) m="manual"; st.wx=m;
+  document.querySelectorAll("#wxSeg button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.wx===m));
+  $("wxAuto").hidden = m!=="auto"; $("wxManual").hidden = m!=="manual";
+  if (m==="auto" && st.start==null) pickStart(defaultStart());
+}
+function renderWx(){
+  const box=$("wxBox"), src=$("wxSrc"); if(!box) return;
+  if (!WX){ box.textContent="Aún no hay pronóstico cargado. Usa el escenario manual mientras tanto."; src.textContent=""; return; }
+  const ageH = WX.generado ? (Date.now()-Date.parse(WX.generado))/3600e3 : NaN;
+  src.textContent = `${WX.fuente}. Corrida ${WX.corrida.replace("T"," ").replace(":00Z"," UTC")}` + (isFinite(ageH)? ` · actualizado hace ${ageH<1?"menos de 1 h":Math.round(ageH)+" h"}`:"") + (ageH>18?" · ATENCIÓN: pronóstico desactualizado":"") + `. Un solo punto para toda la comuna${WX.lat?` (${WX.lat}, ${WX.lon})`:""}; resolución ~25 km, sin efectos locales de valles ni quebradas.`;
+  if (!autoOn()){ box.textContent=""; $("worstRow").hidden=true; return; }
+  const s = simInfo.series || wxSeries(), e = simInfo.effs || s.map(effOf);
+  const mx=(f)=>Math.max(...s.map(f)), mn=(f)=>Math.min(...s.map(f));
+  const short = st.start+st.H > WX.last, wasOpen = !!(box.querySelector("details")||{}).open;
+  box.innerHTML = `<div>En las ${st.H} h: temperatura máx. <b>${mx(w=>w.T).toFixed(0)} °C</b>, humedad mín. <b>${mn(w=>w.RH).toFixed(0)} %</b>, viento máx. <b>${mx(w=>w.WS).toFixed(0)} km/h</b>, rachas hasta <b>${mx(w=>w.G).toFixed(0)} km/h</b>.${short?" El pronóstico no cubre todo el período; se repite la última hora disponible.":""}</div><details${wasOpen?" open":""}><summary>Ver hora por hora</summary><div class="wxgrid" id="wxGrid"><span class="hd">Hora</span><span class="hd">°C</span><span class="hd">HR %</span><span class="hd">km/h</span><span class="hd">desde</span></div></details>`;
+  { const sp=Math.max(...s.map(w=>w.S||0)), has=WX.h.some(r=>r[6]>0); $("worstRow").hidden=!has; $("inWorst").checked=!!st.worst;
+    if (has){ $("worstTxt").textContent=`Las 31 corridas del conjunto GEFS difieren hasta ±${sp.toFixed(0)} km/h en el viento de este período. Al activarlo se suma esa diferencia al viento de cada hora.`;
+      box.firstElementChild.insertAdjacentHTML("beforeend",` Incertidumbre del viento entre corridas: <b>±${sp.toFixed(0)} km/h</b>${sp>=12?" (alta: conviene revisar también el caso desfavorable)":""}.`); } }
+  const g=$("wxGrid"); s.forEach((w,k)=>{ const hot = w.T>=30 && w.RH<=30 && w.WS>=30; const c=hot?' class="hot"':"";
+    g.insertAdjacentHTML("beforeend",`<span${c}>${String(hourOf(st.start+k)).padStart(2,"0")}:00</span><span${c}>${w.T.toFixed(0)}</span><span${c}>${w.RH.toFixed(0)}</span><span${c}>${w.WS.toFixed(0)}</span><span${c}>${dirName(w.WD)}</span>`); });
+}
+function onWxData(doc, announce){
+  const had=!!WX; if(!setWX(doc)) return;
+  buildDayOptions();
+  if (st.start!=null) pickStart(st.start);
+  if (!had && st.wx==="manual" && !st.wxTouched) setWxMode("auto"); else if (st.wx==="auto") pickStart(st.start??defaultStart());
+  renderWx(); if (announce!==false) runSim();
+}
+const DIRFULL = ["el norte","el noreste","el este","el sureste","el sur","el suroeste","el oeste","el noroeste"];
+const dirFull = deg => DIRFULL[Math.round(((deg%360)+360)%360/45)%8];
+function renderDir(){
+  const hd=simInfo.headDir, manual = st.dirTo!=null && autoOn();
+  const cur = hd==null ? null : (Math.round(hd/45)%8)*45;
+  document.querySelectorAll("#dirPad button").forEach(b=>{ const v=b.dataset.dir;
+    b.setAttribute("aria-pressed", v==="auto" ? !manual && autoOn() : (manual ? +v===st.dirTo : (!autoOn() && +v===((Math.round(((st.WD+180)%360)/45)%8)*45))));
+    b.classList.toggle("cur", v!=="auto" && cur!=null && +v===cur); });
+  $("dirNow").textContent = hd==null ? "Sin avance apreciable" : "Avanza hacia "+dirFull(hd);
+  const sp = simInfo.headMin>0 ? (simInfo.headKm/(simInfo.headMin/60)) : 0;
+  $("dirNote").textContent = (hd==null ? "" : `Eje principal: ${simInfo.headKm.toFixed(1).replace(".",",")} km en ${fmtH(simInfo.headMin/60)} (${sp.toFixed(1).replace(".",",")} km/h). `) +
+    (manual ? "Dirección fijada a mano; la fuerza del viento sigue al pronóstico. Toca Auto para volver." : autoOn() ? "Según el viento pronosticado y el relieve. Toca una flecha para fijar otra dirección." : "Toca una flecha para cambiar hacia dónde empuja el viento.");
+}
+document.querySelectorAll("#dirPad button").forEach(b=>b.onclick=()=>{ const v=b.dataset.dir;
+  if (v==="auto"){ st.dirTo=null; if(!autoOn()) setWxMode("auto"); }
+  else if (autoOn()) st.dirTo=+v; else { st.WD=(+v+180)%360; syncInputs(); }
+  runSim(); });
+function renderSummary(area, nb, now, hit){
+  const hd=simInfo.headDir; $("sumArrow").style.transform = hd==null ? "rotate(0deg)" : `rotate(${hd}deg)`; $("sumArrow").style.opacity = hd==null ? .35 : 1;
+  $("sumH").textContent = hd==null ? "Sin avance apreciable" : "Avanza hacia "+dirFull(hd);
+  $("sumS").textContent = `${fmtH(st.t)}: ${area}` + (nb? ` · ${nb.toLocaleString("es-CL")} edificaciones`:"") + (now.length? ` · ${now.length} ${now.length===1?"localidad":"localidades"}`:"") + (simInfo.cutN? ` · ${simInfo.cutN} con salida cortada`:"");
+  const next = hit.find(x=>x.a>st.t*60), n=$("sumN"); n.textContent="";
+  if (next){ n.append("Próxima localidad: "); const b=document.createElement("b"); b.textContent=`${next.l.n} en ${fmtH(next.a/60)}`; n.append(b); }
+  else n.textContent = hit.length ? "El fuego ya alcanzó todas las localidades de la proyección." : `Ninguna localidad alcanzada en ${st.H} h.`;
+}
+const HOME = {};
+function dolly(f){ const d=camera.position.clone().sub(controls.target), L=Math.max(controls.minDistance, Math.min(controls.maxDistance, d.length()*f)); camera.position.copy(controls.target).add(d.setLength(L)); }
+$("zIn").onclick=()=>dolly(.7); $("zOut").onclick=()=>dolly(1.4);
+$("zHome").onclick=()=>{ if(HOME.t){ controls.target.copy(HOME.t); camera.position.copy(HOME.p); } };
+function syncInputs(){
+  $("inT").value=st.T; $("inRH").value=st.RH; $("inWS").value=st.WS; $("inWD").value=st.WD; $("inH").value=st.H; $("inNino").checked=st.nino;
+  $("outT").textContent=st.T+" °C"; $("outRH").textContent=st.RH+" %"; $("outWS").textContent=st.WS+" km/h"; $("outWD").textContent=st.WD+"° "+dirName(st.WD);
+  $("outH").textContent=st.H+" h"; $("outEx").textContent=st.exag+"×"; $("chipNino").hidden=!st.nino;
+  const [i,j]=lonlatToCell(st.ign.lon,st.ign.lat); const f=(i>=0&&j>=0&&i<NX&&j<NY)?fuelOf(LC[j*NX+i]).n:"fuera del área";
+  $("btnPerimClear").hidden=!st.perim; $("inRoad").checked=st.roadBrake;
+  if (st.perim) $("igniteInfo").textContent = `Perímetro dibujado: ${Math.round(st.perimCells.length*DX*DY/10000).toLocaleString("es-CL")} ha ya quemadas al inicio.`;
+  else $("igniteInfo").textContent = `${st.ignDemo?"Foco de ejemplo":"Foco"}: ${st.ign.lat.toFixed(4)}, ${st.ign.lon.toFixed(4)} · ${f} · ${Math.round(elevAt(st.ign.lon,st.ign.lat))} m s. n. m.`;
+}
+let simTimer=null;
+function scheduleSim(){ clearTimeout(simTimer); simTimer=setTimeout(runSim,120); }
+for (const [id,key] of [["inT","T"],["inRH","RH"],["inWS","WS"],["inWD","WD"],["inH","H"]]){
+  $(id).addEventListener("input",()=>{ st[key]=+$(id).value; if(key==="H") st.t=st.H; syncInputs(); scheduleSim(); });
+}
+$("inNino").addEventListener("change",()=>{ st.nino=$("inNino").checked; syncInputs(); runSim(); });
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ Object.assign(st, PRESETS[b.dataset.preset]); syncInputs(); runSim(); });
+document.querySelectorAll("#wxSeg button").forEach(b=>b.onclick=()=>{ st.wxTouched=true; setWxMode(b.dataset.wx); runSim(); });
+$("inDay").addEventListener("change",()=>{ const prev=st.start!=null?hourOf(st.start):15; buildHourOptions(); const o=[...$("inHour").options]; const m=o.find(x=>hourOf(+x.value)===prev)||o[0]; if(m){ st.start=+m.value; $("inHour").value=m.value; } runSim(); });
+$("inHour").addEventListener("change",()=>{ st.start=+$("inHour").value; runSim(); });
+$("inTime").addEventListener("input",()=>{ st.t=+$("inTime").value; updateClock(); buildFireOverlay(); updateStats(); });
+$("btnIgnite").onclick=$("mapIgnite").onclick=()=>setMode(st.mode==="ignite"?null:"ignite");
+$("mapBreak").onclick=()=>setMode(st.mode==="break"?null:"break");
+$("mapAdd").onclick=()=>{ selectTab("res"); setMode(st.mode==="add"?null:"add"); };
+$("btnBreak").onclick=()=>setMode(st.mode==="break"?null:"break");
+$("btnPerim").onclick=()=>setMode(st.mode==="perim"?null:"perim");
+$("hintX").onclick=()=>setMode(null);
+$("hintDone").onclick=()=>{ const d=st.draft; st.draft=null; setPerim(d); setMode(null); recompose(); placeStatic(); st.t=Math.min(3,st.H); syncInputs(); runSim();
+  if(!st.perim) $("igniteInfo").textContent="El perímetro quedó fuera del área o es demasiado pequeño. Dibújalo de nuevo."; };
+$("btnPerimClear").onclick=()=>{ setPerim(null); recompose(); syncInputs(); runSim(); };
+$("inWorst").addEventListener("change",()=>{ st.worst=$("inWorst").checked; runSim(); });
+$("inRoad").addEventListener("change",()=>{ st.roadBrake=$("inRoad").checked; runSim(); });
+$("btnClearBreaks").onclick=()=>{ st.breaks=[]; rebuildBlocks(); recompose(); runSim(); };
+$("btnAddRes").onclick=()=>setMode(st.mode==="add"?null:"add");
+$("btnDemo").onclick=loadDemo;
+$("btnShareScn").onclick=shareScn;
+$("inEx").addEventListener("input",()=>{ st.exag=+$("inEx").value; syncInputs(); buildTerrain(); placeStatic(); updateResources3D(); });
+document.querySelectorAll("#baseSeg button").forEach(b=>b.onclick=()=>{ setBase(b.dataset.base); document.querySelectorAll("#baseSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); });
+for (const [id,k] of [["lyFire","fire"],["lyBound","bound"],["lyRes","res"],["lyTown","town"],["lyPoi","poi"],["lyRoad","road"],["lyWater","water"],["lyBld","bld"],["lyArrow","arrow"]]) $(id).addEventListener("change",()=>{ st.layers[k]=$(id).checked; if(["bound","road","water","bld"].includes(k)) recompose(); if(k==="arrow") drawArrows(); updateFire(); resGroup.visible=st.layers.res; });
+{ const dl=$("locList"); for (const l of LOCS.slice().sort((a,b)=>a.n.localeCompare(b.n,"es"))){ const o=document.createElement("option"); o.value=l.n; dl.appendChild(o); }
+  $("inLoc").addEventListener("change",()=>{ const v=$("inLoc").value.trim().toLowerCase(); if(!v) return; const m=LOCS.filter(l=>l.n.toLowerCase()===v); const l=m.find(x=>x.inC)||m[0]||LOCS.find(l=>l.n.toLowerCase().includes(v));
+    if(!l){ $("locInfo").textContent="No encontré esa localidad en los datos."; return; }
+    flyTo(l.lon,l.lat,900); const a=arrivalNear(l.lon,l.lat,2)/60;
+    $("locInfo").textContent = `${l.n}${l.inC?"":" (fuera de la comuna)"} · ${l.pop?l.pop.toLocaleString("es-CL")+" hab. aprox.":"sin dato de población"} · ${Math.round(elevAt(l.lon,l.lat))} m s. n. m. · ${a<=st.H?"el fuego llegaría en "+fmtH(a):"el fuego no llega en "+st.H+" h"}`; }); }
+function arrivalNear(lon,lat,rad){ if(!arrival) return Infinity; const [i,j]=lonlatToCell(lon,lat); let m=Infinity;
+  for(let dj=-rad;dj<=rad;dj++)for(let di=-rad;di<=rad;di++){const ni=i+di,nj=j+dj; if(ni>=0&&nj>=0&&ni<NX&&nj<NY) m=Math.min(m,arrival[nj*NX+ni]);} return m; }
+function selectTab(k){ for (const t of ["sim","res","cap","log"]){ $("tab-"+t).setAttribute("aria-selected",t===k); $("pane-"+t).hidden=t!==k; } try{localStorage.setItem("lumaco-tab",k);}catch(e){} }
+for (const t of ["sim","res","cap","log"]) $("tab-"+t).onclick=()=>selectTab(t);
+let playing=false, lastStat=0;
+$("btnPlay").onclick=()=>{
+  if (playing){ playing=false; $("btnPlay").textContent="▶"; updateStats(); return; }
+  if (st.t>=st.H) st.t=0; playing=true; $("btnPlay").textContent="❚❚";
+};
+function stepPlay(dt){
+  if (!playing) return;
+  st.t=Math.min(st.H, st.t+dt*st.H/14); $("inTime").value=st.t; updateFire(); updateClock();
+  const now=performance.now(); if (now-lastStat>350 || st.t>=st.H){ lastStat=now; updateStats(); }
+  if (st.t>=st.H){ playing=false; $("btnPlay").textContent="▶"; }
+}
+const fmtClock = new Intl.DateTimeFormat("es-CL",{timeZone:TZ,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+function updateClock(){ const m=Math.round(st.t*60); $("clock").textContent=`+${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`;
+  $("clockSub").textContent = autoOn() ? fmtClock.format(new Date((st.start*60+m)*60e3)) : "desde el inicio"; }
+function updateStats(){
+  updateClock();
+  if (!arrival) return; let n=0; const t=st.t*60; for (let k=0;k<arrival.length;k++) if (arrival[k]<=t) n++;
+  const ha = n*DX*DY/10000;
+  $("stArea").textContent = ha>=1000 ? (ha/1000).toFixed(1).replace(".",",")+" mil ha" : Math.round(ha).toLocaleString("es-CL")+" ha";
+  $("stRos").textContent = (simInfo.maxRos*60/1000).toFixed(1).replace(".",",")+" km/h";
+  { const hk=Math.min(st.H,Math.floor(st.t)), e=simInfo.effs[hk], w=simInfo.series[hk];
+    $("stFmc").textContent = e.fmc.toFixed(1).replace(".",",")+" %";
+    $("stDir").textContent = simInfo.headDir==null ? "—" : "Hacia "+dirName(simInfo.headDir)+" · "+simInfo.headKm.toFixed(1).replace(".",",")+" km"; }
+  let nb=0; for (let k=0;k<arrival.length;k++) if (arrival[k]<=t && BLD[k]) nb+=BLD[k];
+  $("stBld").textContent = nb.toLocaleString("es-CL");
+  const hit = LOCS.filter(l=>l.kind<3).map(l=>({l,a:arrivalNear(l.lon,l.lat,l.kind?4:2)})).filter(x=>x.a<=st.H*60).sort((x,y)=>x.a-y.a);
+  const now = hit.filter(x=>x.a<=t);
+  $("stLoc").textContent = now.length + (now.length? " · "+now.reduce((s,x)=>s+(x.l.pop||0),0).toLocaleString("es-CL")+" hab.":"");
+  $("stEtaK").textContent = `Llegada estimada del fuego a localidades (${hit.length} en ${st.H} h)`;
+  const cut=isolatedLocs(t), cutSet=new Set(cut), hitSet=new Set(now.map(x=>x.l));
+  $("cutBox").hidden=!cut.length; { const c=$("stCut"); c.textContent=""; for (const l of cut.slice().sort((a,b)=>(b.pop||0)-(a.pop||0))){ const row=document.createElement("button"); row.type="button"; row.className="eta"; row.onclick=()=>flyTo(l.lon,l.lat,1200); const s1=document.createElement("span"), s2=document.createElement("span"); s1.textContent=l.n+(l.inC?"":" · otra comuna"); s2.textContent=l.pop?l.pop.toLocaleString("es-CL")+" hab.":""; s2.className="warn"; row.append(s1,s2); c.appendChild(row); } }
+  for (const L of labels){ if(!L.loc) continue; const a=cutSet.has(L.loc), b=hitSet.has(L.loc); if (L.cut!==a || L.hit!==b){ L.cut=a; L.hit=b; L.el.classList.toggle("cut",a); L.el.classList.toggle("hit",b); L.w=L.el.offsetWidth; } }
+  simInfo.cutN=cut.length;
+  renderSummary($("stArea").textContent, nb, now, hit);
+  const eta=$("stEta"); eta.textContent="";
+  const mk=(name,txt,warn,onclick)=>{ const row=document.createElement(onclick?"button":"div"); row.className="eta"; if(onclick){ row.type="button"; row.onclick=onclick; }
+    const s1=document.createElement("span"), s2=document.createElement("span"); s1.textContent=name; s2.textContent=txt; if(warn) s2.className="warn"; row.append(s1,s2); eta.appendChild(row); };
+  for (const l of LOCS.filter(l=>(l.kind===1||l.kind===2)&&l.inC)) if(!hit.find(x=>x.l===l)) mk(l.n, `no llega en ${st.H} h`, false, ()=>flyTo(l.lon,l.lat,1200));
+  const showAll = eta.dataset.all==="1";
+  for (const x of (showAll?hit:hit.slice(0,10))) mk(x.l.n+(x.l.pop?` (${x.l.pop})`:"")+(x.l.inC?"":" · otra comuna"), fmtH(x.a/60), true, ()=>flyTo(x.l.lon,x.l.lat,1200));
+  if (hit.length>10) mk(showAll?"Ver menos":`Ver las ${hit.length} localidades`, "", false, ()=>{ eta.dataset.all=showAll?"":"1"; updateStats(); });
+  const atRisk = allRes().filter(r=>{const h=riskOf(r); return h!==null&&h<=st.H;}).length;
+  mk("Recursos en la zona proyectada", String(atRisk), !!atRisk);
+}
+
+// ---------- Bitácora y exportación ----------
+let logs=[], dlCap=null; const LS_LOG="lumaco-bitacora-local";
+const fmtLog=new Intl.DateTimeFormat("es-CL",{timeZone:TZ,day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+const LOGK={nota:"Nota",recurso:"Recurso",escenario:"Escenario"};
+async function logEvent(k,txt){
+  const e={t:Date.now(),k,x:String(txt).slice(0,240),by:myId||null};
+  if (db && !localMode){ try{ await db.collection("bitacora").add(e); return true; }catch(err){ return false; } }
+  logs.unshift(e); logs=logs.slice(0,300); try{ localStorage.setItem(LS_LOG,JSON.stringify(logs)); }catch(_){} renderLog(); return true;
+}
+function renderLog(){
+  const box=$("logList"); if(!box) return; box.textContent=""; $("logCount").textContent=`Registro (${logs.length}${logs.length>=80&&!localMode?" más recientes":""})`;
+  if (!logs.length){ const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no hay anotaciones. Aquí queda el registro de lo que pasa durante el incidente: quién movió qué recurso, qué escenarios se compartieron y las notas que escriban las instituciones."; box.appendChild(e); return; }
+  for (const e of logs){ const row=document.createElement("div"); row.className="logrow"; const tx=document.createElement("span"); tx.textContent=e.x||""; const tg=document.createElement("span"); tg.className="tag"; tg.textContent=LOGK[e.k]||"Nota";
+    const sm=document.createElement("small"); sm.textContent=fmtLog.format(new Date(e.t||0))+(names[e.by]?" · "+names[e.by]:""); row.append(tx,tg,sm); box.appendChild(row); }
+  resolveNames([...new Set(logs.map(e=>e.by))]);
+}
+$("logForm").onsubmit=async ev=>{ ev.preventDefault(); const v=$("logTxt").value.trim(); if(!v) return;
+  const ok=await logEvent("nota",v); if(ok) $("logTxt").value=""; else expNote("No se pudo anotar. Tu nivel de acceso puede ser de solo lectura."); };
+function expNote(t){ $("expNote").textContent=t; }
+async function saveFile(name, data, alt){
+  const out=$("expOut"); out.hidden=true;
+  try{ if(!dlCap && window.claude && window.claude.use) dlCap=await window.claude.use("downloads"); }catch(e){ dlCap=null; }
+  if (dlCap){
+    try{ await dlCap.save({filename:name,data}); expNote("Archivo guardado: "+name+"."); return; }
+    catch(e){
+      let err=e;
+      if (err && err.code==="rejected_extension" && alt){ try{ await dlCap.save({filename:alt,data}); expNote(`Archivo guardado como ${alt}. Para abrirlo en Google Earth o QGIS, cámbiale el nombre a ${name} (quita el ".txt" final).`); return; }catch(e2){ err=e2; } }
+      if (err && err.code==="declined"){ expNote("Descarga cancelada."); return; }
+      if (err && err.code==="rate_limited"){ expNote("Hay otra descarga pendiente. Espera unos segundos e inténtalo de nuevo."); return; }
+    }
+  }
+  out.value=data; out.hidden=false; out.focus(); out.select();
+  expNote(`La descarga directa no está disponible en esta vista. Copia el texto de abajo y guárdalo en un archivo llamado ${name}.`);
+}
+function contour(tMin){   // borde del área quemada a un tiempo dado, como líneas [[lon,lat],...]
+  const adj=new Map(), put=(a,b)=>{ let l=adj.get(a); if(!l) adj.set(a,l=[]); l.push(b); }, add=(a,b)=>{ put(a,b); put(b,a); }, K=(X,Y)=>X*4096+Y, B=k=>arrival[k]<=tMin;
+  for(let j=0;j<NY-1;j++)for(let i=0;i<NX-1;i++){ const o=j*NX+i, c=(B(o)?8:0)|(B(o+1)?4:0)|(B(o+NX+1)?2:0)|(B(o+NX)?1:0); if(!c||c===15) continue;
+    const T=K(2*i+1,2*j), R=K(2*i+2,2*j+1), Bo=K(2*i+1,2*j+2), L=K(2*i,2*j+1);
+    switch(c){ case 1:case 14:add(L,Bo);break; case 2:case 13:add(Bo,R);break; case 3:case 12:add(L,R);break; case 4:case 11:add(T,R);break; case 6:case 9:add(T,Bo);break; case 7:case 8:add(T,L);break; case 5:add(T,L);add(Bo,R);break; case 10:add(T,R);add(L,Bo);break; } }
+  const used=new Set(), out=[], walk=s=>{ const line=[s]; used.add(s); let cur=s; for(;;){ const nx=adj.get(cur).find(k=>!used.has(k)); if(nx===undefined) break; used.add(nx); line.push(nx); cur=nx; } return line; };
+  for (const [k,v] of adj) if(v.length===1 && !used.has(k)) out.push(walk(k));
+  for (const [k] of adj) if(!used.has(k)){ const l=walk(k); l.push(l[0]); out.push(l); }
+  return out.filter(l=>l.length>=4).map(l=>l.map(k=>{ const X=Math.floor(k/4096), Y=k%4096; return [W+(X/2+.5)/NX*(E-W), N-(Y/2+.5)/NY*(N-S)]; }));
+}
+const xe=s=>String(s==null?"":s).replace(/[<>&"']/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;","'":"&apos;"}[c]));
+const kc=p=>p[0].toFixed(5)+","+p[1].toFixed(5)+",0";
+function buildKML(){
+  const when=fmtLog.format(new Date()), t0=autoOn()?st.start*3600e3:null, P=[];
+  const pt=(name,desc,lon,lat,style)=>`<Placemark><name>${xe(name)}</name><description>${xe(desc)}</description><styleUrl>#${style}</styleUrl><Point><coordinates>${kc([lon,lat])}</coordinates></Point></Placemark>`;
+  P.push(`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Lumaco Fuego 3D · situación ${xe(when)}</name>`);
+  P.push(`<description>${xe(`Generado el ${when} (hora de Chile). Proyección de ${st.H} h`+(t0?` desde ${fmtLog.format(new Date(t0))}`:" con clima manual")+`. Modelo simplificado y sin calibrar: sirve para coordinar y comparar escenarios, no reemplaza la evaluación de CONAF ni de Bomberos.`)}</description>`);
+  P.push(`<Style id="res"><IconStyle><color>ff2f9e5a</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_square.png</href></Icon></IconStyle></Style><Style id="foco"><IconStyle><color>ff1823b4</color><scale>1.3</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/firedept.png</href></Icon></IconStyle></Style><Style id="loc"><IconStyle><color>ff00a5ff</color><Icon><href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href></Icon></IconStyle></Style><Style id="cut"><IconStyle><color>ff00d7ff</color><Icon><href>http://maps.google.com/mapfiles/kml/shapes/caution.png</href></Icon></IconStyle></Style><Style id="per"><LineStyle><color>ff000000</color><width>3</width></LineStyle><PolyStyle><color>80202020</color></PolyStyle></Style><Style id="brk"><LineStyle><color>ffffffff</color><width>4</width></LineStyle></Style>`);
+  const cols=["ff00ffff","ff00c8ff","ff0090ff","ff0050ff","ff0000e0","ff000090"];
+  cols.forEach((c,k)=>P.push(`<Style id="iso${k}"><LineStyle><color>${c}</color><width>2.5</width></LineStyle></Style>`));
+  P.push("<Folder><name>Inicio del incendio</name>");
+  if (st.perim) P.push(`<Placemark><name>Perímetro inicial</name><description>${xe(Math.round(st.perimCells.length*DX*DY/10000)+" ha quemadas al inicio")}</description><styleUrl>#per</styleUrl><Polygon><outerBoundaryIs><LinearRing><coordinates>${st.perim.concat([st.perim[0]]).map(kc).join(" ")}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`);
+  else P.push(pt(st.ignDemo?"Foco de ejemplo":"Foco","Punto de inicio del escenario",st.ign.lon,st.ign.lat,"foco"));
+  st.breaks.forEach((b,k)=>P.push(`<Placemark><name>Cortafuego ${k+1}</name><styleUrl>#brk</styleUrl><LineString><coordinates>${kc([b[0],b[1]])} ${kc([b[2],b[3]])}</coordinates></LineString></Placemark>`));
+  P.push("</Folder><Folder><name>Avance proyectado</name>");
+  if (arrival){ const hs=ISO.filter(h=>h<st.H).concat([st.H]);
+    hs.forEach((h,k)=>{ const ls=contour(h*60); if(!ls.length) return;
+      P.push(`<Placemark><name>${xe(`Avance a +${h} h`+(t0?` (${fmtLog.format(new Date(t0+h*3600e3))})`:""))}</name><styleUrl>#iso${Math.min(k,cols.length-1)}</styleUrl><MultiGeometry>${ls.map(l=>`<LineString><tessellate>1</tessellate><coordinates>${l.map(kc).join(" ")}</coordinates></LineString>`).join("")}</MultiGeometry></Placemark>`); }); }
+  P.push("</Folder><Folder><name>Localidades alcanzadas</name>");
+  if (arrival){ const hit=LOCS.filter(l=>l.kind<3).map(l=>({l,a:arrivalNear(l.lon,l.lat,l.kind?4:2)})).filter(x=>x.a<=st.H*60).sort((x,y)=>x.a-y.a);
+    for (const h of hit) P.push(pt(h.l.n,`El fuego llegaría en ${fmtH(h.a/60)}`+(t0?` (${fmtLog.format(new Date(t0+h.a*60e3))})`:"")+(h.l.pop?`. Población aproximada: ${h.l.pop}`:""),h.l.lon,h.l.lat,"loc"));
+    P.push("</Folder><Folder><name>Localidades con salida cortada</name>");
+    for (const l of isolatedLocs(st.H*60)) P.push(pt(l.n,`A las ${st.H} h el fuego corta sus caminos de salida, según la red de caminos disponible.`,l.lon,l.lat,"cut")); }
+  P.push("</Folder><Folder><name>Recursos</name>");
+  for (const r of resources){ const ins=instOf(r.inst), rk=riskOf(r);
+    P.push(pt(`${r.nombre||r.tipo} (${ins.n})`,[`Tipo: ${r.tipo}`,`Estado: ${estadoOf(r.estado).n}`,r.dotacion?`Dotación o capacidad: ${r.dotacion}`:"",r.contacto?`Contacto: ${r.contacto}`:"",rk!==null&&isFinite(rk)&&rk<=st.H?`El fuego llegaría a su posición en ${fmtH(rk)}`:"",r.updatedAt?`Actualizado: ${fmtLog.format(new Date(r.updatedAt))}`:""].filter(Boolean).join(". "),r.lon,r.lat,"res")); }
+  P.push("</Folder></Document></kml>");
+  return P.join("\n");
+}
+$("btnKml").onclick=()=>saveFile("lumaco-situacion.kml", buildKML(), "lumaco-situacion.kml.txt");
+$("btnCsv").onclick=async()=>{
+  let rows=logs;
+  if (db && !localMode){ try{ const s=await db.collection("bitacora").orderBy("t","desc").limit(1000).get(); rows=s.docs.map(d=>d.data()); await resolveNames([...new Set(rows.map(e=>e.by))]); }catch(e){} }
+  if (!rows.length){ expNote("La bitácora está vacía; no hay nada que exportar todavía."); return; }
+  const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const csv="﻿"+["fecha_hora_chile;tipo;anotacion;autor"].concat(rows.slice().reverse().map(e=>[q(fmtLog.format(new Date(e.t||0))),q(LOGK[e.k]||"Nota"),q(e.x),q(names[e.by]||"")].join(";"))).join("\r\n");
+  saveFile("lumaco-bitacora.csv", csv);
+};
+
+// ---------- Render loop ----------
+function resize(){ const w=view.clientWidth, h=view.clientHeight; renderer.setSize(w,h,false); renderer.domElement.style.width=w+"px"; renderer.domElement.style.height=h+"px"; camera.aspect=w/Math.max(1,h); camera.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(view);
+let frameN=0, lastT=performance.now();
+function loop(){ const nowT=performance.now(), dt=Math.min(.1,(nowT-lastT)/1000); lastT=nowT; shared.uTime.value=nowT/1000; stepPlay(dt);
+  controls.update(); renderer.render(scene,camera); layoutLabels();
+  const a = Math.atan2(camera.position.x-controls.target.x, camera.position.z-controls.target.z); $("compassRot").setAttribute("transform",`rotate(${a*180/Math.PI})`);
+  requestAnimationFrame(loop); }
+
+// ---------- Inicio ----------
+function start(){
+  try{ const t=localStorage.getItem("lumaco-tab"); if(t) selectTab(t); }catch(e){}
+  setSky(); buildAlt(); buildTerrain(); recompose();
+  const tgt = toWorld(-72.95,-38.19); controls.target.copy(tgt);
+  camera.position.set(tgt.x+500, tgt.y+1500, tgt.z+2700); HOME.t=tgt.clone(); HOME.p=camera.position.clone();
+  if (DATA.wx) onWxData(DATA.wx, false);
+  setWxMode(WX?"auto":"manual");
+  syncInputs(); renderFilters(); renderLog(); placeStatic(); rebuildBlocks(); runSim(); resize(); loop();
+  $("loading").hidden=true;
+  loadAssets();
+  connect();
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",setSky);
+new MutationObserver(setSky).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+async function connect(){
+  const chip=$("chipShare"), txt=$("chipShareTxt");
+  const goLocal = () => { localMode=true; chip.classList.remove("on"); txt.textContent="Modo local · sin compartir"; try{ resources=JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch(e){ resources=[]; } updateResources3D(); renderResList(); updateStats(); try{ logs=JSON.parse(localStorage.getItem(LS_LOG)||"[]"); }catch(e){ logs=[]; } renderLog(); };
+  if (!window.claude || !window.claude.use){ goLocal(); return; }
+  try { [db,user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]); } catch(e){ db=null; }
+  if (!db){ goLocal(); return; }
+  try { if (user){ const me=await user.me(); myId = me && me.id; const cw = user.can ? await user.can("data.write") : null; if (cw===false) canWrite=false; } } catch(e){}
+  chip.classList.add("on"); txt.textContent = canWrite ? "En línea · compartido" : "En línea · solo lectura";
+  if (!canWrite){ $("btnAddRes").disabled=true; resNote("Tienes acceso de solo lectura. Para registrar recursos pide acceso de colaborador."); }
+  let first=true; const timer=setTimeout(()=>{ if(first){ txt.textContent="Sin respuesta del servidor"; } },10000);
+  db.collection("recursos").onSnapshot(snap=>{ clearTimeout(timer); first=false;
+    resources = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(r=>typeof r.lon==="number"&&typeof r.lat==="number");
+    updateResources3D(); renderResList(); updateStats();
+    if (selectedId && !allRes().find(r=>r.id===selectedId)){ selectedId=null; showForm(null); }
+  }, e=>{ txt.textContent="Conexión interrumpida"; chip.classList.remove("on"); });
+  db.collection("bitacora").orderBy("t","desc").limit(80).onSnapshot(snap=>{ logs=snap.docs.map(d=>d.data()); renderLog(); }, ()=>{});
+  db.doc("clima/pronostico").onSnapshot(s=>{ if (s.exists) onWxData(s.data()); }, ()=>{});
+  let firstScn=true;
+  db.doc("escenario/actual").onSnapshot(s=>{
+    if (!s.exists) { firstScn=false; return; }
+    const d=s.data(); scnRemote=d;
+    if (firstScn){ firstScn=false; applyScn(d); $("scnInfo").textContent="Cargado el último escenario compartido."; return; }
+    if ((d.updatedAt||0) > scnLoadedAt && d.updatedBy!==myId){
+      const who = names[d.updatedBy] || "Otra institución";
+      $("bannerTxt").textContent = `${who} compartió un nuevo escenario de incendio.`; $("banner").hidden=false;
+      resolveNames([d.updatedBy]).then(()=>{ if(names[d.updatedBy]) $("bannerTxt").textContent=`${names[d.updatedBy]} compartió un nuevo escenario de incendio.`; });
+    }
+  }, ()=>{});
+}
+$("bannerLoad").onclick=()=>{ if(scnRemote) applyScn(scnRemote); $("banner").hidden=true; };
+$("bannerX").onclick=()=>{ $("banner").hidden=true; };
+
+start();
+})();
+</script>
